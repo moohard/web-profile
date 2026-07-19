@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Support\HasTranslations;
+use Database\Factories\WidgetFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -16,6 +18,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Widget extends Model
 {
+    /** @use HasFactory<WidgetFactory> */
+    use HasFactory;
+
     use HasTranslations;
 
     protected $fillable = ['type', 'config', 'is_active'];

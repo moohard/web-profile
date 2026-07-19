@@ -6,6 +6,8 @@ namespace App\Models;
 
 use App\Enums\LinkType;
 use App\Support\HasTranslations;
+use Database\Factories\MenuItemFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -21,6 +23,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class MenuItem extends Model
 {
+    /** @use HasFactory<MenuItemFactory> */
+    use HasFactory;
+
     use HasTranslations;
 
     protected $fillable = [

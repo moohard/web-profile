@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\PostStatus;
+use Database\Factories\PostTranslationFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -24,6 +26,9 @@ use Illuminate\Support\Carbon;
  */
 class PostTranslation extends Model
 {
+    /** @use HasFactory<PostTranslationFactory> */
+    use HasFactory;
+
     protected $fillable = [
         'post_id',
         'language_id',

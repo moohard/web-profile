@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\MenuLocation;
+use Database\Factories\MenuFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
@@ -16,6 +18,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 class Menu extends Model
 {
+    /** @use HasFactory<MenuFactory> */
+    use HasFactory;
+
     protected $fillable = ['name', 'location'];
 
     protected function casts(): array

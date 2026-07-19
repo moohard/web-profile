@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Database\Factories\LanguageFactory;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
@@ -18,6 +20,9 @@ use Illuminate\Support\Facades\Cache;
  */
 class Language extends Model
 {
+    /** @use HasFactory<LanguageFactory> */
+    use HasFactory;
+
     protected $fillable = ['code', 'name', 'is_default', 'is_active', 'sort_order'];
 
     protected function casts(): array

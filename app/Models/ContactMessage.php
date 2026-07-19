@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\ContactStatus;
+use Database\Factories\ContactMessageFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -18,6 +20,9 @@ use Illuminate\Database\Eloquent\Model;
  */
 class ContactMessage extends Model
 {
+    /** @use HasFactory<ContactMessageFactory> */
+    use HasFactory;
+
     protected $fillable = [
         'name',
         'email',

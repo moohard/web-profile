@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\TestimonialStatus;
+use Database\Factories\TestimonialFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -20,6 +22,9 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  */
 class Testimonial extends Model
 {
+    /** @use HasFactory<TestimonialFactory> */
+    use HasFactory;
+
     protected $fillable = [
         'author_name',
         'author_title',
