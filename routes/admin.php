@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\MediaController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -26,5 +27,6 @@ Route::get('/tags', fn () => Inertia::render('admin/placeholder', ['section' => 
 Route::get('/galleries', fn () => Inertia::render('admin/placeholder', ['section' => 'Galeri']))->name('galleries.index');
 Route::get('/writing-styles', fn () => Inertia::render('admin/placeholder', ['section' => 'Gaya Bahasa']))->name('writing-styles.index')->middleware('permission:admin.access-system');
 Route::get('/rating-criteria', fn () => Inertia::render('admin/placeholder', ['section' => 'Kriteria Penilaian']))->name('rating-criteria.index')->middleware('permission:admin.access-system');
-// /admin/media akan diisi Fase 7; sementara placeholder
-Route::get('/media', fn () => Inertia::render('admin/placeholder', ['section' => 'Media']))->name('media.index');
+Route::get('/media', [MediaController::class, 'index'])->name('media.index');
+Route::post('/media', [MediaController::class, 'store'])->name('media.store');
+Route::delete('/media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
