@@ -8,6 +8,7 @@ use App\Enums\MenuLocation;
 use App\Models\Language;
 use App\Models\Menu;
 use App\Models\WidgetPlacement;
+use App\Services\Html\Sanitizer;
 use Illuminate\Support\Facades\Cache;
 
 /**
@@ -129,11 +130,18 @@ class PublicLayoutProps
                 continue;
             }
 
+            $content = $translation?->content;
+
+            // Defense-in-depth: sanitasi HTML widget saat disajikan ke publik
+            if ($widget->type === 'HtmlWidget' && is_string($content) && $content !== '') {
+                $content = app(Sanitizer::class)->clean($content);
+            }
+
             $byPosition[$key][] = [
                 'type' => $widget->type,
                 'config' => $widget->config,
                 'title' => $translation?->title,
-                'content' => $translation?->content,
+                'content' => $content,
             ];
         }
 

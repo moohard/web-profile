@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\UserRole;
 use App\Models\ContentType;
 use App\Models\Post;
 use App\Models\User;
@@ -54,6 +55,51 @@ it('POST /admin/media menolak MIME tidak valid', function () {
     ]);
 
     $response->assertSessionHasErrors('file');
+});
+
+it('POST /admin/media menolak collection di luar allowlist', function () {
+    $admin = User::where('email', env('ADMIN_EMAIL', 'admin@papenajam.test'))->first();
+    $type = ContentType::where('slug', 'berita')->first();
+    $post = Post::factory()->create(['type_id' => $type->id]);
+
+    $response = $this->actingAs($admin)->post('/admin/media', [
+        'file' => UploadedFile::fake()->image('a.jpg', 800, 600),
+        'model_type' => 'Post',
+        'model_id' => $post->id,
+        'collection' => 'secret_gallery',
+    ]);
+
+    $response->assertSessionHasErrors('collection');
+    expect($post->fresh()->getMedia('secret_gallery'))->toHaveCount(0);
+});
+
+it('User tanpa media.create mendapat 403 pada upload', function () {
+    // Hanya access-admin — tanpa permission media.* dari role
+    $user = User::factory()->create()->givePermissionTo('access-admin');
+
+    $type = ContentType::where('slug', 'berita')->first();
+    $post = Post::factory()->create(['type_id' => $type->id]);
+
+    $this->actingAs($user)->post('/admin/media', [
+        'file' => UploadedFile::fake()->image('a.jpg', 800, 600),
+        'model_type' => 'Post',
+        'model_id' => $post->id,
+        'collection' => 'featured_image',
+    ])->assertForbidden();
+});
+
+it('Author dengan media.create tetap ditolak update parent post (policy)', function () {
+    $author = User::factory()->create()->assignRole(UserRole::Author->value);
+    $type = ContentType::where('slug', 'berita')->first();
+    $post = Post::factory()->create(['type_id' => $type->id]);
+
+    // Author punya media.create, tetapi PostPolicy::update = false untuk Author
+    $this->actingAs($author)->post('/admin/media', [
+        'file' => UploadedFile::fake()->image('a.jpg', 800, 600),
+        'model_type' => 'Post',
+        'model_id' => $post->id,
+        'collection' => 'featured_image',
+    ])->assertForbidden();
 });
 
 it('DELETE /admin/media/{media} menghapus', function () {

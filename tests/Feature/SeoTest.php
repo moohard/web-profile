@@ -112,3 +112,12 @@ it('OG tags ada', function () {
     expect($html)->toMatch('/property="og:title"/')
         ->and($html)->toMatch('/property="og:type"/');
 });
+
+it('Komponen JsonLd meng-escape karakter HTML setelah stringify', function () {
+    $src = file_get_contents(resource_path('js/components/seo/json-ld.tsx'));
+
+    expect($src)->toContain('\\u003c')
+        ->and($src)->toContain('\\u003e')
+        ->and($src)->toContain('\\u0026')
+        ->and($src)->toMatch('/replace\s*\(\s*\/<\//');
+});

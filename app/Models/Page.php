@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\PageMode;
+use App\Policies\PagePolicy;
 use App\Support\HasTranslations;
 use App\Support\Media\HasDefaultMediaConversions;
 use Database\Factories\PageFactory;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -22,6 +24,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property ?string $hero_image
  * @property bool $sidebar_enabled
  */
+#[UsePolicy(PagePolicy::class)]
 class Page extends Model implements HasMedia
 {
     use HasDefaultMediaConversions, InteractsWithMedia {
@@ -30,6 +33,7 @@ class Page extends Model implements HasMedia
 
     /** @use HasFactory<PageFactory> */
     use HasFactory;
+
     use HasTranslations;
 
     protected $fillable = [

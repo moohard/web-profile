@@ -29,11 +29,16 @@ Route::get('/galleries', fn () => Inertia::render('admin/placeholder', ['section
 Route::get('/writing-styles', fn () => Inertia::render('admin/placeholder', ['section' => 'Gaya Bahasa']))->name('writing-styles.index')->middleware('permission:admin.access-system');
 Route::get('/rating-criteria', fn () => Inertia::render('admin/placeholder', ['section' => 'Kriteria Penilaian']))->name('rating-criteria.index')->middleware('permission:admin.access-system');
 Route::get('/media', [MediaController::class, 'index'])->name('media.index');
-Route::post('/media', [MediaController::class, 'store'])->name('media.store');
-Route::delete('/media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
+Route::post('/media', [MediaController::class, 'store'])
+    ->middleware('permission:media.create')
+    ->name('media.store');
+Route::delete('/media/{media}', [MediaController::class, 'destroy'])
+    ->middleware('permission:media.delete')
+    ->name('media.destroy');
 
 Route::post('/ai/translate', [AiController::class, 'translate'])
-    ->middleware('throttle:30,1')
+    ->middleware(['permission:ai.create', 'throttle:30,1'])
     ->name('ai.translate');
 Route::post('/ai/apply-translation', [AiController::class, 'applyTranslation'])
+    ->middleware(['permission:ai.update', 'throttle:30,1'])
     ->name('ai.apply-translation');
