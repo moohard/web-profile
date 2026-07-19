@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\AiController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MediaController;
 use Illuminate\Support\Facades\Route;
@@ -30,3 +31,9 @@ Route::get('/rating-criteria', fn () => Inertia::render('admin/placeholder', ['s
 Route::get('/media', [MediaController::class, 'index'])->name('media.index');
 Route::post('/media', [MediaController::class, 'store'])->name('media.store');
 Route::delete('/media/{media}', [MediaController::class, 'destroy'])->name('media.destroy');
+
+Route::post('/ai/translate', [AiController::class, 'translate'])
+    ->middleware('throttle:30,1')
+    ->name('ai.translate');
+Route::post('/ai/apply-translation', [AiController::class, 'applyTranslation'])
+    ->name('ai.apply-translation');
