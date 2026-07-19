@@ -1,4 +1,6 @@
-import { MetaHead } from '@/components/seo/meta-head';
+import PublicLayout, {
+    type PublicLayoutSharedProps,
+} from '@/layouts/public-layout';
 
 type PostTranslationProp = {
     id: number;
@@ -17,22 +19,24 @@ type SeoProp = {
     ogType?: string;
 };
 
-export default function PostShow({
-    post,
-    contentType,
-    seo,
-}: {
+type PostShowProps = PublicLayoutSharedProps & {
     post: PostTranslationProp;
     contentType: { slug: string; name: string };
     seo: SeoProp;
-}) {
+};
+
+export default function PostShow(props: PostShowProps) {
+    const { post, contentType, seo } = props;
+
     return (
-        <>
-            <MetaHead {...seo} />
-            <main className="prose mx-auto max-w-3xl p-8">
-                <a href="/" className="text-sm text-blue-600 hover:underline">
-                    ← Beranda
-                </a>
+        <PublicLayout
+            {...props}
+            title={seo?.title}
+            description={seo?.description}
+            canonical={seo?.canonical}
+            hreflang={seo?.hreflang}
+        >
+            <article className="prose">
                 <p className="text-sm text-muted-foreground">
                     {contentType.name}
                 </p>
@@ -40,7 +44,7 @@ export default function PostShow({
                 <div
                     dangerouslySetInnerHTML={{ __html: post.body ?? '' }}
                 />
-            </main>
-        </>
+            </article>
+        </PublicLayout>
     );
 }

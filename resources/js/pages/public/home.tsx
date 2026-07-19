@@ -1,38 +1,27 @@
-import { Head } from '@inertiajs/react';
+import PublicLayout, {
+    type PublicLayoutSharedProps,
+} from '@/layouts/public-layout';
 
 type LatestPost = {
     id: number;
     title: string;
 };
 
-export default function PublicHome({
-    latestPosts,
-    locale,
-}: {
+type HomeProps = PublicLayoutSharedProps & {
     latestPosts: LatestPost[];
-    locale: string;
-}) {
+};
+
+export default function PublicHome(props: HomeProps) {
+    const { latestPosts } = props;
+
     return (
-        <>
-            <Head title="Beranda">
-                <link
-                    rel="alternate"
-                    hrefLang={locale}
-                    href={
-                        typeof window !== 'undefined'
-                            ? window.location.href
-                            : ''
-                    }
-                />
-            </Head>
-            <main className="prose p-8">
-                <h1>Beranda</h1>
-                <ul>
-                    {latestPosts.map((p) => (
-                        <li key={p.id}>{p.title}</li>
-                    ))}
-                </ul>
-            </main>
-        </>
+        <PublicLayout {...props} title="Beranda">
+            <h1>Beranda</h1>
+            <ul>
+                {latestPosts.map((p) => (
+                    <li key={p.id}>{p.title}</li>
+                ))}
+            </ul>
+        </PublicLayout>
     );
 }

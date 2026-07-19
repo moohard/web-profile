@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Public;
 use App\Http\Controllers\Controller;
 use App\Models\Language;
 use App\Models\PostTranslation;
+use App\Support\PublicLayoutProps;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -28,9 +29,9 @@ class HomeController extends Controller
             ->limit(5)
             ->get();
 
-        return Inertia::render('public/home', [
-            'latestPosts' => $latest,
-            'locale' => app()->getLocale(),
-        ]);
+        return Inertia::render('public/home', array_merge(
+            PublicLayoutProps::base(),
+            ['latestPosts' => $latest],
+        ));
     }
 }

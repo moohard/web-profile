@@ -1,4 +1,6 @@
-import { Head } from '@inertiajs/react';
+import PublicLayout, {
+    type PublicLayoutSharedProps,
+} from '@/layouts/public-layout';
 
 type PageProp = {
     id: number;
@@ -8,18 +10,21 @@ type PageProp = {
     } | null;
 };
 
-export default function PageShow({ page }: { page: PageProp }) {
+type PageShowProps = PublicLayoutSharedProps & {
+    page: PageProp;
+};
+
+export default function PageShow(props: PageShowProps) {
+    const { page } = props;
+
     return (
-        <>
-            <Head title={page.title} />
-            <main className="p-8">
-                <h1>{page.title}</h1>
-                <div
-                    dangerouslySetInnerHTML={{
-                        __html: page.content?.html ?? '',
-                    }}
-                />
-            </main>
-        </>
+        <PublicLayout {...props} title={page.title}>
+            <h1>{page.title}</h1>
+            <div
+                dangerouslySetInnerHTML={{
+                    __html: page.content?.html ?? '',
+                }}
+            />
+        </PublicLayout>
     );
 }

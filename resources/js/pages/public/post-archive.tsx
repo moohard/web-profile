@@ -1,4 +1,6 @@
-import { Head } from '@inertiajs/react';
+import PublicLayout, {
+    type PublicLayoutSharedProps,
+} from '@/layouts/public-layout';
 
 type ContentTypeProp = {
     slug: string;
@@ -14,24 +16,22 @@ type PaginatedPosts = {
     data?: PostItem[];
 };
 
-export default function PostArchive({
-    contentType,
-    posts,
-}: {
+type PostArchiveProps = PublicLayoutSharedProps & {
     contentType: ContentTypeProp;
     posts: PaginatedPosts;
-}) {
+};
+
+export default function PostArchive(props: PostArchiveProps) {
+    const { contentType, posts } = props;
+
     return (
-        <>
-            <Head title={contentType.name} />
-            <main className="p-8">
-                <h1>{contentType.name}</h1>
-                <ul>
-                    {posts.data?.map((p) => (
-                        <li key={p.id}>{p.title}</li>
-                    ))}
-                </ul>
-            </main>
-        </>
+        <PublicLayout {...props} title={contentType.name}>
+            <h1>{contentType.name}</h1>
+            <ul>
+                {posts.data?.map((p) => (
+                    <li key={p.id}>{p.title}</li>
+                ))}
+            </ul>
+        </PublicLayout>
     );
 }

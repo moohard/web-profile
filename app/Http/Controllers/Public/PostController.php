@@ -9,6 +9,7 @@ use App\Models\ContentType;
 use App\Models\Language;
 use App\Models\PostTranslation;
 use App\Support\LocaleUrl;
+use App\Support\PublicLayoutProps;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -30,13 +31,16 @@ class PostController extends Controller
             ->orderByDesc('published_at')
             ->paginate(12);
 
-        return Inertia::render('public/post-archive', [
-            'contentType' => [
-                'slug' => $contentType->slug,
-                'name' => $contentType->translate()?->name ?? ucfirst($contentType->slug),
+        return Inertia::render('public/post-archive', array_merge(
+            PublicLayoutProps::base(),
+            [
+                'contentType' => [
+                    'slug' => $contentType->slug,
+                    'name' => $contentType->translate()?->name ?? ucfirst($contentType->slug),
+                ],
+                'posts' => $posts,
             ],
-            'posts' => $posts,
-        ]);
+        ));
     }
 
     /**
@@ -53,19 +57,22 @@ class PostController extends Controller
             $hreflang[$tr->language->code] = url(LocaleUrl::for($tr->language->code, $path));
         }
 
-        return Inertia::render('public/post-show', [
-            'post' => $translation->load('post.type'),
-            'contentType' => [
-                'slug' => $contentType->slug,
-                'name' => $contentType->translate()?->name ?? ucfirst($contentType->slug),
+        return Inertia::render('public/post-show', array_merge(
+            PublicLayoutProps::base(),
+            [
+                'post' => $translation->load('post.type'),
+                'contentType' => [
+                    'slug' => $contentType->slug,
+                    'name' => $contentType->translate()?->name ?? ucfirst($contentType->slug),
+                ],
+                'seo' => [
+                    'title' => $translation->meta_title ?? $translation->title,
+                    'description' => $translation->meta_description,
+                    'canonical' => url()->current(),
+                    'hreflang' => $hreflang,
+                    'ogType' => 'article',
+                ],
             ],
-            'seo' => [
-                'title' => $translation->meta_title ?? $translation->title,
-                'description' => $translation->meta_description,
-                'canonical' => url()->current(),
-                'hreflang' => $hreflang,
-                'ogType' => 'article',
-            ],
-        ]);
+        ));
     }
 }
