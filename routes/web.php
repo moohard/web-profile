@@ -41,9 +41,19 @@ $dispatchPublicPath = function () {
 $reserved = 'admin|login|logout|register|dashboard|settings|password|user|email|two-factor|sanctum|up';
 $publicSlug1 = '(?!(?:'.$reserved.')(?:/|$))[a-z0-9\-]+';
 
+// ── Sitemap (file statis di public/; rute agar tersedia di testing & tanpa static server) ──
+Route::get('/sitemap.xml', function () {
+    $path = public_path('sitemap.xml');
+
+    abort_unless(is_file($path), 404);
+
+    return response(file_get_contents($path), 200, [
+        'Content-Type' => 'application/xml; charset=UTF-8',
+    ]);
+})->name('sitemap');
+
 // ── Beranda (locale default, tanpa prefix) ──
 Route::get('/', [HomeController::class, 'index'])->name('home');
-
 // ── Locale non-default ber-prefix (/en, …) — HARUS sebelum catch-all unprefixed
 // agar /en tidak tertangkap sebagai slug1. SetLocale (web middleware) set locale
 // dari segment-1; path di-resolve dari parameter rute (bukan path request).
