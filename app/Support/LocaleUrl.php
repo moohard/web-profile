@@ -6,19 +6,28 @@ namespace App\Support;
 
 use App\Models\Language;
 use Illuminate\Support\Collection;
+use Throwable;
 
 class LocaleUrl
 {
     /** Ambil daftar locale aktif (code). */
     public static function active(): Collection
     {
-        return Language::active()->pluck('code');
+        try {
+            return Language::active()->pluck('code');
+        } catch (Throwable) {
+            return collect();
+        }
     }
 
     /** Apakah code adalah locale valid non-default? */
     public static function isNonDefaultLocale(string $code): bool
     {
-        $default = Language::defaultModel()->code;
+        try {
+            $default = Language::defaultModel()->code;
+        } catch (Throwable) {
+            return false;
+        }
 
         return $code !== $default && static::active()->contains($code);
     }
@@ -27,7 +36,12 @@ class LocaleUrl
     public static function for(string $locale, string $pathWithoutLocale): string
     {
         $pathWithoutLocale = '/'.ltrim($pathWithoutLocale, '/');
-        $default = Language::defaultModel()->code;
+
+        try {
+            $default = Language::defaultModel()->code;
+        } catch (Throwable) {
+            $default = config('app.locale', 'id');
+        }
 
         if ($locale === $default) {
             return $pathWithoutLocale === '/' ? '/' : $pathWithoutLocale;

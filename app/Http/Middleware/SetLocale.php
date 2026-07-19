@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use ReflectionProperty;
 use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Symfony\Component\HttpFoundation\Response;
+use Throwable;
 
 class SetLocale
 {
@@ -36,7 +37,12 @@ class SetLocale
             $stripped = '/'.ltrim(substr($request->path(), strlen($segment)), '/');
             $this->setPathInfo($request, $stripped === '' ? '/' : $stripped);
         } else {
-            app()->setLocale(Language::defaultModel()->code);
+            // Fallback ke config bila tabel languages kosong / cache rusak (tes, first install)
+            try {
+                app()->setLocale(Language::defaultModel()->code);
+            } catch (Throwable) {
+                app()->setLocale(config('app.locale', 'id'));
+            }
         }
 
         return $next($request);

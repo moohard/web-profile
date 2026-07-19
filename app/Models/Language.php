@@ -52,10 +52,18 @@ class Language extends Model
         );
     }
 
+    /**
+     * Ambil model bahasa default.
+     * Cache hanya menyimpan code (string) agar tidak terjadi __PHP_Incomplete_Class.
+     */
     public static function defaultModel(): self
     {
-        return Cache::rememberForever('language.default', fn () => static::default()->firstOrFail()
-        );
+        $code = Cache::remember('language.default_code', now()->addHour(), function () {
+            return static::default()->value('code')
+                ?? throw new \RuntimeException('Default language not found.');
+        });
+
+        return static::where('code', $code)->firstOrFail();
     }
 
     public static function current(): self
@@ -66,6 +74,7 @@ class Language extends Model
     /** Reset cache — panggil setelah seeder / perubahan tabel languages. */
     public static function flushCache(): void
     {
+        Cache::forget('language.default_code');
         Cache::forget('language.default');
         // keys dinamis per-code tidak bisa di-flush selektif; flush prefix:
         Cache::flush(); // aman di dev; di prod pakai Cache::tags bila didukung
