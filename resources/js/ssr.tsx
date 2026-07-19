@@ -4,6 +4,7 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import ReactDOMServer from 'react-dom/server';
 import { Toaster } from '@/components/ui/sonner';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import AdminLayout from '@/layouts/admin-layout';
 import AppLayout from '@/layouts/app-layout';
 import AuthLayout from '@/layouts/auth-layout';
 import SettingsLayout from '@/layouts/settings/layout';
@@ -31,6 +32,8 @@ createServer((page) =>
                     return null;
                 case name.startsWith('auth/'):
                     return AuthLayout;
+                case name.startsWith('admin/'):
+                    return AdminLayout;
                 case name.startsWith('settings/'):
                     return [AppLayout, SettingsLayout];
                 default:

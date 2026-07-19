@@ -1,4 +1,5 @@
 import { Head } from '@inertiajs/react';
+import { dashboard } from '@/routes/admin';
 
 export default function AdminPlaceholder() {
     return (
@@ -8,3 +9,12 @@ export default function AdminPlaceholder() {
         </>
     );
 }
+
+AdminPlaceholder.layout = {
+    breadcrumbs: [
+        {
+            title: 'Admin',
+            href: dashboard(),
+        },
+    ],
+};
