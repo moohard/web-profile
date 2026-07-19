@@ -50,6 +50,22 @@ return [
             'AutoFormat.RemoveEmpty' => false,
         ],
 
+        'cms_page' => [
+            'Core.Encoding' => 'utf-8',
+            'HTML.Doctype' => 'HTML 4.01 Transitional',
+            'HTML.Allowed' => 'div,section,span,p,h1,h2,h3,h4,h5,h6,ul,ol,li,a,img,figure,figcaption,blockquote,br,hr,table,thead,tbody,tr,td,th,strong,em,b,i,code,pre',
+            'HTML.AllowedAttributes' => 'class,href,src,alt,title,target,rel,width,height',
+            'HTML.ForbiddenElements' => 'script,style,iframe,object,embed,form,input,button',
+            'AutoFormat.RemoveEmpty' => true,
+            'HTML.TargetBlank' => true,
+            'URI.AllowedSchemes' => [
+                'http' => true,
+                'https' => true,
+                'mailto' => true,
+            ],
+            'Attr.AllowedFrameTargets' => ['_blank', '_self'],
+        ],
+
     ],
 
     /*
