@@ -38,8 +38,10 @@ trait HasTranslations
     public function scopeWithTranslation(Builder $query): Builder
     {
         return $query->with(['translations' => function (Relation $q) {
-            $q->where('language_id', Language::idFor(app()->getLocale()))
-                ->orWhere('language_id', Language::defaultModel()->id);
+            $q->whereIn('language_id', array_unique([
+                Language::idFor(app()->getLocale()),
+                Language::defaultModel()->id,
+            ]));
         }]);
     }
 }
