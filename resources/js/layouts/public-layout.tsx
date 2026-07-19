@@ -1,4 +1,4 @@
-import { Head, usePage } from '@inertiajs/react';
+import { usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { Hero } from '@/components/public/hero';
@@ -6,6 +6,8 @@ import {
     WidgetRenderer,
     type WidgetItem,
 } from '@/components/public/widget-renderer';
+import { JsonLd } from '@/components/seo/json-ld';
+import { MetaHead } from '@/components/seo/meta-head';
 
 export type PublicMenuItem = {
     label: string;
@@ -44,14 +46,20 @@ type PublicLayoutProps = PublicLayoutSharedProps & {
     description?: string;
     canonical?: string;
     hreflang?: Record<string, string>;
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: string;
+    ogType?: string;
+    jsonLd?: Record<string, unknown> | Record<string, unknown>[];
     children: ReactNode;
 };
 
 /**
  * Shell layout publik: header, hero opsional, main+sidebar, footer + widget slots.
+ * Meta SEO via MetaHead; structured data via JsonLd.
  */
 export default function PublicLayout(props: PublicLayoutProps) {
-    const { region, children } = props;
+    const { region, children, jsonLd } = props;
     const { url } = usePage();
 
     // Path tanpa prefix locale non-default (en)
@@ -59,24 +67,20 @@ export default function PublicLayout(props: PublicLayoutProps) {
 
     return (
         <>
-            <Head>
-                {props.title && <title>{props.title}</title>}
-                {props.description && (
-                    <meta name="description" content={props.description} />
-                )}
-                {props.canonical && (
-                    <link rel="canonical" href={props.canonical} />
-                )}
-                {props.hreflang &&
-                    Object.entries(props.hreflang).map(([locale, href]) => (
-                        <link
-                            key={locale}
-                            rel="alternate"
-                            hrefLang={locale}
-                            href={href}
-                        />
-                    ))}
-            </Head>
+            {props.title && (
+                <MetaHead
+                    title={props.title}
+                    description={props.description}
+                    canonical={props.canonical}
+                    hreflang={props.hreflang}
+                    ogTitle={props.ogTitle}
+                    ogDescription={props.ogDescription}
+                    ogImage={props.ogImage}
+                    ogType={props.ogType}
+                />
+            )}
+
+            {jsonLd && <JsonLd data={jsonLd} />}
 
             <a
                 href="#main-content"

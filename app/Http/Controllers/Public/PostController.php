@@ -10,6 +10,7 @@ use App\Models\Language;
 use App\Models\PostTranslation;
 use App\Support\LocaleUrl;
 use App\Support\PublicLayoutProps;
+use App\Support\Seo\SeoProps;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -57,6 +58,24 @@ class PostController extends Controller
             $hreflang[$tr->language->code] = url(LocaleUrl::for($tr->language->code, $path));
         }
 
+        $seo = SeoProps::for(
+            title: $translation->meta_title ?? $translation->title,
+            description: $translation->meta_description,
+            canonical: url()->current(),
+            hreflang: $hreflang,
+            ogType: 'article',
+            ogImage: $post->featured_image ? url($post->featured_image) : null,
+        );
+
+        $jsonLd = [
+            '@context' => 'https://schema.org',
+            '@type' => 'Article',
+            'headline' => $translation->title,
+            'datePublished' => $translation->published_at?->toIso8601String(),
+            'image' => $post->featured_image ? [url($post->featured_image)] : [],
+            'inLanguage' => app()->getLocale(),
+        ];
+
         return Inertia::render('public/post-show', array_merge(
             PublicLayoutProps::base(),
             [
@@ -65,13 +84,8 @@ class PostController extends Controller
                     'slug' => $contentType->slug,
                     'name' => $contentType->translate()?->name ?? ucfirst($contentType->slug),
                 ],
-                'seo' => [
-                    'title' => $translation->meta_title ?? $translation->title,
-                    'description' => $translation->meta_description,
-                    'canonical' => url()->current(),
-                    'hreflang' => $hreflang,
-                    'ogType' => 'article',
-                ],
+                'seo' => $seo,
+                'jsonLd' => $jsonLd,
             ],
         ));
     }

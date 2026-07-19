@@ -29,9 +29,33 @@ class HomeController extends Controller
             ->limit(5)
             ->get();
 
+        $jsonLd = [
+            '@context' => 'https://schema.org',
+            '@graph' => [
+                [
+                    '@type' => 'Organization',
+                    'name' => config('app.name'),
+                    'url' => url('/'),
+                ],
+                [
+                    '@type' => 'WebSite',
+                    'name' => config('app.name'),
+                    'url' => url('/'),
+                    'potentialAction' => [
+                        '@type' => 'SearchAction',
+                        'target' => url('/search?q={query}'),
+                        'query-input' => 'required name=query',
+                    ],
+                ],
+            ],
+        ];
+
         return Inertia::render('public/home', array_merge(
             PublicLayoutProps::base(),
-            ['latestPosts' => $latest],
+            [
+                'latestPosts' => $latest,
+                'jsonLd' => $jsonLd,
+            ],
         ));
     }
 }

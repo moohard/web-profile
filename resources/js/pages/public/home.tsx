@@ -9,13 +9,14 @@ type LatestPost = {
 
 type HomeProps = PublicLayoutSharedProps & {
     latestPosts: LatestPost[];
+    jsonLd?: Record<string, unknown>;
 };
 
 export default function PublicHome(props: HomeProps) {
-    const { latestPosts } = props;
+    const { latestPosts, jsonLd, ...layoutProps } = props;
 
     return (
-        <PublicLayout {...props} title="Beranda">
+        <PublicLayout {...layoutProps} title="Beranda" jsonLd={jsonLd}>
             <h1>Beranda</h1>
             <ul>
                 {latestPosts.map((p) => (

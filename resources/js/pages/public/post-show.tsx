@@ -16,6 +16,9 @@ type SeoProp = {
     description?: string;
     canonical?: string;
     hreflang?: Record<string, string>;
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: string;
     ogType?: string;
 };
 
@@ -23,19 +26,14 @@ type PostShowProps = PublicLayoutSharedProps & {
     post: PostTranslationProp;
     contentType: { slug: string; name: string };
     seo: SeoProp;
+    jsonLd?: Record<string, unknown>;
 };
 
 export default function PostShow(props: PostShowProps) {
-    const { post, contentType, seo } = props;
+    const { post, contentType, seo, jsonLd, ...layoutProps } = props;
 
     return (
-        <PublicLayout
-            {...props}
-            title={seo?.title}
-            description={seo?.description}
-            canonical={seo?.canonical}
-            hreflang={seo?.hreflang}
-        >
+        <PublicLayout {...layoutProps} {...seo} jsonLd={jsonLd}>
             <article className="prose">
                 <p className="text-sm text-muted-foreground">
                     {contentType.name}
