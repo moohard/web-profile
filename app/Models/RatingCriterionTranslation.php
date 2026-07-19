@@ -15,6 +15,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  */
 class RatingCriterionTranslation extends Model
 {
+    /** Nama tabel plural non-standar (bukan rating_criterion_translations). */
+    protected $table = 'rating_criteria_translations';
+
     protected $fillable = ['criterion_id', 'language_id', 'name'];
 
     public function criterion(): BelongsTo
