@@ -33,6 +33,22 @@ it('AiConfig api_key ter-enkripsi di DB tapi terbaca plain di model', function (
     expect($cfg->fresh()->api_key)->toBe('secret-key-123');
 });
 
+it('AiConfig menyembunyikan api_key saat serialisasi ke array/json', function () {
+    $cfg = AiConfig::create([
+        'task' => AiTask::Translation,
+        'base_url' => 'https://api.example.com/v1',
+        'api_key' => 'secret-key-123',
+        'enabled' => true,
+    ]);
+
+    // api_key tidak boleh ikut ter-serialisasi (mencegah bocor plaintext ke Inertia/JSON)
+    expect($cfg->toArray())->not->toHaveKey('api_key')
+        ->and($cfg->fresh()->toArray())->not->toHaveKey('api_key')
+        ->and($cfg->toJson())->not->toContain('secret-key-123')
+        // sanity: masih terbaca eksplisit lewat atribut (untuk pemakaian server-side)
+        ->and($cfg->fresh()->api_key)->toBe('secret-key-123');
+});
+
 it('AiConfig::resolve mengembalikan konfigurasi enabled untuk task', function () {
     AiConfig::create([
         'task' => AiTask::Translation,

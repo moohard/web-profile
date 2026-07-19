@@ -21,6 +21,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property int $id
  * @property int $type_id
  * @property ?int $category_id
+ * @property ?int $author_id
  * @property ?string $featured_image
  */
 #[UsePolicy(PostPolicy::class)]
@@ -35,7 +36,7 @@ class Post extends Model implements HasMedia
 
     use HasTranslations;
 
-    protected $fillable = ['type_id', 'category_id', 'featured_image'];
+    protected $fillable = ['type_id', 'category_id', 'author_id', 'featured_image'];
 
     public function registerMediaCollections(): void
     {
@@ -52,6 +53,12 @@ class Post extends Model implements HasMedia
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
+    }
+
+    /** @return BelongsTo<User, $this> */
+    public function author(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'author_id');
     }
 
     /** @return BelongsToMany<Tag, $this> */

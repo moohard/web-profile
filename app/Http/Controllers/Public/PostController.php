@@ -8,6 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Models\ContentType;
 use App\Models\Language;
 use App\Models\PostTranslation;
+use App\Models\WidgetPlacementTarget;
+use App\Services\Html\Sanitizer;
 use App\Support\LocaleUrl;
 use App\Support\PublicLayoutProps;
 use App\Support\Seo\SeoProps;
@@ -31,11 +33,17 @@ class PostController extends Controller
             ->whereHas('post', fn ($q) => $q->where('type_id', $contentType->id))
             ->published()
             ->orderByDesc('published_at')
-            ->paginate(12);
+            ->paginate(12)
+            ->through(fn (PostTranslation $t) => [
+                'id' => $t->id,
+                'title' => $t->title,
+                'url' => LocaleUrl::for(app()->getLocale(), '/'.$contentType->slug.'/'.$t->slug),
+            ]);
 
         return Inertia::render('public/post-archive', array_merge(
             PublicLayoutProps::base(),
             [
+                'region' => PublicLayoutProps::region(WidgetPlacementTarget::TYPE_CONTENT_ARCHIVE, (string) $contentType->id),
                 'contentType' => [
                     'slug' => $contentType->slug,
                     'name' => $this->contentTypeName($contentType),
@@ -78,9 +86,13 @@ class PostController extends Controller
             'inLanguage' => app()->getLocale(),
         ];
 
+        // Defense-in-depth: sanitasi HTML body sebelum dikirim ke frontend (dirender via dangerouslySetInnerHTML)
+        $translation->body = app(Sanitizer::class)->clean($translation->body ?? '');
+
         return Inertia::render('public/post-show', array_merge(
             PublicLayoutProps::base(),
             [
+                'region' => PublicLayoutProps::region(WidgetPlacementTarget::TYPE_CONTENT_SINGLE, (string) $post->id),
                 'post' => $translation->load('post.type'),
                 'contentType' => [
                     'slug' => $contentType->slug,

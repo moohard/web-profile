@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Language;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
     $this->seed();
@@ -42,4 +43,19 @@ it('GET /nonexistent-slug → 404', function () {
 
 it('GET /admin redirect ke login (bukan publik)', function () {
     $this->get('/admin')->assertRedirect('/login');
+});
+
+it('beranda menyediakan url single post yang dapat diklik', function () {
+    $this->get('/')->assertInertia(fn (Assert $page) => $page
+        ->component('public/home')
+        ->has('latestPosts.0.url')
+        ->where('latestPosts.0.url', '/berita/selamat-datang')
+    );
+});
+
+it('arsip menyediakan url single post yang dapat diklik', function () {
+    $this->get('/berita')->assertInertia(fn (Assert $page) => $page
+        ->component('public/post-archive')
+        ->where('posts.data.0.url', '/berita/selamat-datang')
+    );
 });

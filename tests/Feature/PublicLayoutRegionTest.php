@@ -1,6 +1,8 @@
 <?php
 
 use App\Models\Language;
+use App\Models\Page;
+use App\Models\PageTranslation;
 use Inertia\Ssr\HttpGateway;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -29,6 +31,34 @@ it('Publik layout mengirim props region, menu, dan locales', function () {
                     && in_array('English', $names, true);
             })
         );
+});
+
+it('halaman dengan hero & sidebar aktif mengirim region.hero dan region.sidebar', function () {
+    $langId = Language::idFor('id');
+    $page = Page::create([
+        'mode' => 'Template',
+        'hero_enabled' => true,
+        'sidebar_enabled' => true,
+    ]);
+    PageTranslation::create([
+        'page_id' => $page->id,
+        'language_id' => $langId,
+        'slug' => 'profil',
+        'title' => 'Profil',
+        'hero_heading' => 'Selamat Datang',
+        'hero_subheading' => 'Sub judul',
+        'hero_cta_text' => 'Mulai',
+        'hero_cta_link' => '/mulai',
+        'status' => 'Published',
+    ]);
+
+    $this->get('/profil')->assertInertia(fn (Assert $inertia) => $inertia
+        ->component('public/page-show')
+        ->where('region.hero.enabled', true)
+        ->where('region.hero.heading', 'Selamat Datang')
+        ->where('region.hero.ctaLink', '/mulai')
+        ->where('region.sidebar.enabled', true)
+    );
 });
 
 it('Publik layout punya header, main id, footer', function () {

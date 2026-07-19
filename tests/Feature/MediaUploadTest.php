@@ -107,18 +107,34 @@ it('User tanpa media.create mendapat 403 pada upload', function () {
     ])->assertForbidden();
 });
 
-it('Author dengan media.create tetap ditolak update parent post (policy)', function () {
+it('Author ditolak upload media ke post yang bukan miliknya', function () {
     $author = User::factory()->create()->assignRole(UserRole::Author->value);
     $type = ContentType::where('slug', 'berita')->first();
+    // Post tanpa author_id → bukan milik $author → PostPolicy::update = false
     $post = Post::factory()->create(['type_id' => $type->id]);
 
-    // Author punya media.create, tetapi PostPolicy::update = false untuk Author
     $this->actingAs($author)->post('/admin/media', [
         'file' => UploadedFile::fake()->image('a.jpg', 800, 600),
         'model_type' => 'Post',
         'model_id' => $post->id,
         'collection' => 'featured_image',
     ])->assertForbidden();
+});
+
+it('Author boleh upload media ke post miliknya sendiri', function () {
+    $author = User::factory()->create()->assignRole(UserRole::Author->value);
+    $type = ContentType::where('slug', 'berita')->first();
+    $post = Post::factory()->create(['type_id' => $type->id, 'author_id' => $author->id]);
+
+    $response = $this->actingAs($author)->post('/admin/media', [
+        'file' => UploadedFile::fake()->image('a.jpg', 800, 600),
+        'model_type' => 'Post',
+        'model_id' => $post->id,
+        'collection' => 'featured_image',
+    ]);
+
+    $response->assertRedirect();
+    expect($post->fresh()->getMedia('featured_image'))->toHaveCount(1);
 });
 
 it('DELETE /admin/media/{media} menghapus', function () {

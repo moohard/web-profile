@@ -10,7 +10,26 @@ import { MetaHead } from '@/components/seo/meta-head';
 export type PublicMenuItem = {
     label: string;
     url?: string;
+    children?: PublicMenuItem[];
 };
+
+/** Render item menu secara rekursif (mendukung sub-menu hierarkis). */
+function MenuNodes({ items }: { items: PublicMenuItem[] }) {
+    return (
+        <>
+            {items.map((item, i) => (
+                <li key={i}>
+                    <a href={item.url ?? '#'}>{item.label}</a>
+                    {item.children && item.children.length > 0 && (
+                        <ul className="ml-4">
+                            <MenuNodes items={item.children} />
+                        </ul>
+                    )}
+                </li>
+            ))}
+        </>
+    );
+}
 
 export type PublicRegion = {
     hero?: {
@@ -96,11 +115,7 @@ export default function PublicLayout(props: PublicLayoutProps) {
                         Papenajam
                     </a>
                     <ul className="flex gap-4">
-                        {(props.headerMenu ?? []).map((item, i) => (
-                            <li key={i}>
-                                <a href={item.url ?? '#'}>{item.label}</a>
-                            </li>
-                        ))}
+                        <MenuNodes items={props.headerMenu ?? []} />
                     </ul>
                     <LocaleSwitcher
                         currentLocale={props.locale}
@@ -137,11 +152,7 @@ export default function PublicLayout(props: PublicLayoutProps) {
             <footer className="border-t bg-muted/50">
                 <div className="mx-auto max-w-6xl p-4">
                     <ul className="flex flex-wrap gap-4">
-                        {(props.footerMenu ?? []).map((item, i) => (
-                            <li key={i}>
-                                <a href={item.url ?? '#'}>{item.label}</a>
-                            </li>
-                        ))}
+                        <MenuNodes items={props.footerMenu ?? []} />
                     </ul>
                     {(region?.widgets?.footer ?? []).map((w, i) => (
                         <WidgetRenderer key={`ft-${i}`} widget={w} />

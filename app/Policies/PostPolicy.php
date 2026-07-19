@@ -32,7 +32,7 @@ class PostPolicy
 
     /**
      * Admin dan Editor boleh update semua post.
-     * Author hanya miliknya sendiri (author_id ditambah di fase fitur).
+     * Author hanya boleh mengubah post miliknya sendiri.
      */
     public function update(User $user, Post $post): bool
     {
@@ -40,8 +40,7 @@ class PostPolicy
             return true;
         }
 
-        // TODO fase fitur: return $post->author_id === $user->id;
-        return false;
+        return $this->owns($user, $post);
     }
 
     /**
@@ -53,10 +52,18 @@ class PostPolicy
     }
 
     /**
-     * Hapus post milik sendiri — diisi di fase fitur.
+     * Hapus post milik sendiri (khusus pemilik).
      */
     public function deleteOwn(User $user, Post $post): bool
     {
-        return false;
+        return $this->owns($user, $post);
+    }
+
+    /**
+     * Apakah user adalah pemilik (author) dari post ini.
+     */
+    private function owns(User $user, Post $post): bool
+    {
+        return $post->author_id !== null && $post->author_id === $user->id;
     }
 }

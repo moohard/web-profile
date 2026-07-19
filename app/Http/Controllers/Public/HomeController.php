@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Public;
 use App\Http\Controllers\Controller;
 use App\Models\Language;
 use App\Models\PostTranslation;
+use App\Support\LocaleUrl;
 use App\Support\PublicLayoutProps;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -50,10 +51,17 @@ class HomeController extends Controller
             ],
         ];
 
+        $latestPosts = $latest->map(fn (PostTranslation $t) => [
+            'id' => $t->id,
+            'title' => $t->title,
+            'url' => LocaleUrl::for(app()->getLocale(), '/'.$t->post->type->slug.'/'.$t->slug),
+        ])->values()->all();
+
         return Inertia::render('public/home', array_merge(
             PublicLayoutProps::base(),
             [
-                'latestPosts' => $latest,
+                'region' => PublicLayoutProps::region(),
+                'latestPosts' => $latestPosts,
                 'jsonLd' => $jsonLd,
             ],
         ));

@@ -28,6 +28,14 @@ class AiConfig extends Model
         'enabled',
     ];
 
+    /**
+     * Sembunyikan api_key dari serialisasi array/JSON agar kredensial
+     * terenkripsi tidak bocor bila model ter-serialisasi (mis. ke prop Inertia).
+     *
+     * @var list<string>
+     */
+    protected $hidden = ['api_key'];
+
     protected function casts(): array
     {
         return [
