@@ -73,7 +73,7 @@ return [
     |
     */
 
-    'home' => '/dashboard',
+    'home' => '/admin',
 
     /*
     |--------------------------------------------------------------------------
@@ -160,6 +160,8 @@ return [
     |
     */
 
+    // Features::registration() sengaja tidak diaktifkan (self-registration dimatikan).
+    // Profile/password di-handle via settings controllers starter kit, bukan Fortify features.
     'features' => [
         Features::resetPasswords(),
         Features::twoFactorAuthentication([
