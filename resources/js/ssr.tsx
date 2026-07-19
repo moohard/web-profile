@@ -1,4 +1,4 @@
-import { createInertiaApp } from '@inertiajs/react';
+import { createInertiaApp, type ResolvedComponent } from '@inertiajs/react';
 import createServer from '@inertiajs/react/server';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import ReactDOMServer from 'react-dom/server';
@@ -16,9 +16,14 @@ createServer((page) =>
         render: ReactDOMServer.renderToString,
         title: (title) => (title ? `${title} - ${appName}` : appName),
         resolve: (name) =>
-            resolvePageComponent(
+            // Opsi { import: 'default' } membuat glob mengembalikan komponen
+            // (bukan module namespace), sehingga tipe kembalian resolver cocok
+            // dengan ComponentResolver SSR Inertia v3 (Promise<ResolvedComponent>).
+            resolvePageComponent<ResolvedComponent>(
                 `./pages/${name}.tsx`,
-                import.meta.glob('./pages/**/*.tsx'),
+                import.meta.glob<ResolvedComponent>('./pages/**/*.tsx', {
+                    import: 'default',
+                }),
             ),
         layout: (name) => {
             switch (true) {
