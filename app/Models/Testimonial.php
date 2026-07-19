@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\TestimonialStatus;
+use App\Support\Media\HasDefaultMediaConversions;
 use Database\Factories\TestimonialFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -20,8 +23,12 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property TestimonialStatus $status
  * @property int $sort_order
  */
-class Testimonial extends Model
+class Testimonial extends Model implements HasMedia
 {
+    use HasDefaultMediaConversions, InteractsWithMedia {
+        HasDefaultMediaConversions::registerMediaConversions insteadof InteractsWithMedia;
+    }
+
     /** @use HasFactory<TestimonialFactory> */
     use HasFactory;
 
@@ -41,6 +48,11 @@ class Testimonial extends Model
             'sort_order' => 'integer',
             'photo_media_id' => 'integer',
         ];
+    }
+
+    public function registerMediaCollections(): void
+    {
+        $this->addMediaCollection('photo')->singleFile();
     }
 
     public function photoMedia(): BelongsTo
