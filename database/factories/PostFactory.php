@@ -21,7 +21,11 @@ class PostFactory extends Factory
         ];
     }
 
-    /** Buat post + translation untuk locale tertentu. */
+    /**
+     * Buat post + translation untuk locale tertentu.
+     *
+     * @param  array<string, mixed>  $translationAttrs
+     */
     public function withTranslation(string $locale, int $languageId, array $translationAttrs = []): self
     {
         return $this->has(

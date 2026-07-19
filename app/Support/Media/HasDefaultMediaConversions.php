@@ -20,29 +20,31 @@ trait HasDefaultMediaConversions
             return;
         }
 
+        // Metode Conversion-native (nonQueued/queued/withResponsiveImages) dipanggil
+        // lebih dulu, baru manipulasi gambar (fit/format/quality) dari image driver.
         $this->addMediaConversion('thumb')
+            ->nonQueued()
             ->fit(Fit::Max, 400, 400)
             ->format('webp')
-            ->quality(80)
-            ->nonQueued();
+            ->quality(80);
 
         $this->addMediaConversion('webp_small')
+            ->queued()
             ->fit(Fit::Max, 480, 480)
             ->format('webp')
-            ->quality(80)
-            ->queued();
+            ->quality(80);
 
         $this->addMediaConversion('webp_medium')
+            ->queued()
             ->fit(Fit::Max, 960, 960)
             ->format('webp')
-            ->quality(80)
-            ->queued();
+            ->quality(80);
 
         $this->addMediaConversion('webp_large')
+            ->queued()
+            ->withResponsiveImages()
             ->fit(Fit::Max, 1920, 1920)
             ->format('webp')
-            ->quality(80)
-            ->queued()
-            ->withResponsiveImages();
+            ->quality(80);
     }
 }

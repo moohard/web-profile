@@ -20,11 +20,13 @@ class RatingCriterionTranslation extends Model
 
     protected $fillable = ['criterion_id', 'language_id', 'name'];
 
+    /** @return BelongsTo<RatingCriterion, $this> */
     public function criterion(): BelongsTo
     {
         return $this->belongsTo(RatingCriterion::class, 'criterion_id');
     }
 
+    /** @return BelongsTo<Language, $this> */
     public function language(): BelongsTo
     {
         return $this->belongsTo(Language::class);

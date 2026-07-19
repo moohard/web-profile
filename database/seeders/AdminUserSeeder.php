@@ -18,11 +18,11 @@ class AdminUserSeeder extends Seeder
         }
 
         $user = User::updateOrCreate(
-            ['email' => env('ADMIN_EMAIL', 'admin@papenajam.test')],
+            ['email' => config('admin.email', 'admin@papenajam.test')],
             [
                 'name' => 'Administrator',
                 // Password cast "hashed" — kirim plain text agar tidak double-hash
-                'password' => env('ADMIN_PASSWORD', 'password'),
+                'password' => config('admin.password', 'password'),
             ]
         );
         // email_verified_at tidak di $fillable

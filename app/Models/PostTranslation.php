@@ -49,16 +49,22 @@ class PostTranslation extends Model
         ];
     }
 
+    /** @return BelongsTo<Post, $this> */
     public function post(): BelongsTo
     {
         return $this->belongsTo(Post::class);
     }
 
+    /** @return BelongsTo<Language, $this> */
     public function language(): BelongsTo
     {
         return $this->belongsTo(Language::class);
     }
 
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
     public function scopePublished(Builder $query): Builder
     {
         return $query->where('status', PostStatus::Published->value)

@@ -33,11 +33,13 @@ class RatingCriterion extends Model
         ];
     }
 
+    /** @return HasMany<RatingCriterionTranslation, $this> */
     public function translations(): HasMany
     {
         return $this->hasMany(RatingCriterionTranslation::class, 'criterion_id');
     }
 
+    /** @return HasMany<RatingScore, $this> */
     public function scores(): HasMany
     {
         return $this->hasMany(RatingScore::class, 'criterion_id');

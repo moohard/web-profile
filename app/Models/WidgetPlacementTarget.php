@@ -27,6 +27,7 @@ class WidgetPlacementTarget extends Model
         'target_ref',
     ];
 
+    /** @return BelongsTo<WidgetPlacement, $this> */
     public function placement(): BelongsTo
     {
         return $this->belongsTo(WidgetPlacement::class, 'placement_id');

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Models\ContentType;
+use App\Models\ContentTypeTranslation;
 use App\Models\Language;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -71,12 +72,18 @@ class HandleInertiaRequests extends Middleware
                             }])
                         )
                         ->get()
-                        ->map(fn ($ct) => [
-                            'slug' => $ct->slug,
-                            'name' => $ct->relationLoaded('translations')
-                                ? ($ct->translations->first()?->name ?? ucfirst($ct->slug))
-                                : ucfirst($ct->slug),
-                        ])
+                        ->map(function (ContentType $ct): array {
+                            $translation = $ct->relationLoaded('translations')
+                                ? $ct->translations->first()
+                                : null;
+
+                            return [
+                                'slug' => $ct->slug,
+                                'name' => $translation instanceof ContentTypeTranslation
+                                    ? $translation->name
+                                    : ucfirst($ct->slug),
+                            ];
+                        })
                         ->values()
                         ->toArray();
                 }

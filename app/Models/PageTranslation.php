@@ -51,11 +51,13 @@ class PageTranslation extends Model
         ];
     }
 
+    /** @return BelongsTo<Page, $this> */
     public function page(): BelongsTo
     {
         return $this->belongsTo(Page::class);
     }
 
+    /** @return BelongsTo<Language, $this> */
     public function language(): BelongsTo
     {
         return $this->belongsTo(Language::class);

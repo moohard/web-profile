@@ -18,11 +18,13 @@ class ContentTypeTranslation extends Model
 {
     protected $fillable = ['content_type_id', 'language_id', 'name', 'description'];
 
+    /** @return BelongsTo<ContentType, $this> */
     public function contentType(): BelongsTo
     {
         return $this->belongsTo(ContentType::class);
     }
 
+    /** @return BelongsTo<Language, $this> */
     public function language(): BelongsTo
     {
         return $this->belongsTo(Language::class);

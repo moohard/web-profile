@@ -34,8 +34,7 @@ class SetLocale
             app()->setLocale($segment);
 
             // Hapus prefix dari path supaya controller tidak perlu peduli locale
-            $stripped = '/'.ltrim(substr($request->path(), strlen($segment)), '/');
-            $this->setPathInfo($request, $stripped === '' ? '/' : $stripped);
+            $this->setPathInfo($request, '/'.ltrim(substr($request->path(), strlen($segment)), '/'));
         } else {
             // Fallback ke config bila tabel languages kosong / cache rusak (tes, first install)
             try {

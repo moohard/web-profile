@@ -32,6 +32,7 @@ class Post extends Model implements HasMedia
 
     /** @use HasFactory<PostFactory> */
     use HasFactory;
+
     use HasTranslations;
 
     protected $fillable = ['type_id', 'category_id', 'featured_image'];
@@ -41,21 +42,25 @@ class Post extends Model implements HasMedia
         $this->addMediaCollection('featured_image')->singleFile();
     }
 
+    /** @return BelongsTo<ContentType, $this> */
     public function type(): BelongsTo
     {
         return $this->belongsTo(ContentType::class, 'type_id');
     }
 
+    /** @return BelongsTo<Category, $this> */
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
+    /** @return BelongsToMany<Tag, $this> */
     public function tags(): BelongsToMany
     {
         return $this->belongsToMany(Tag::class, 'post_tags');
     }
 
+    /** @return HasMany<PostTranslation, $this> */
     public function translations(): HasMany
     {
         return $this->hasMany(PostTranslation::class);

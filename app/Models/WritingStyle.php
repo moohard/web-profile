@@ -21,6 +21,7 @@ class WritingStyle extends Model
 
     protected $fillable = ['name', 'prompt'];
 
+    /** @return HasMany<ContentType, $this> */
     public function contentTypes(): HasMany
     {
         return $this->hasMany(ContentType::class);

@@ -58,6 +58,7 @@ class Page extends Model implements HasMedia
         $this->addMediaCollection('hero_image')->singleFile();
     }
 
+    /** @return HasMany<PageTranslation, $this> */
     public function translations(): HasMany
     {
         return $this->hasMany(PageTranslation::class);

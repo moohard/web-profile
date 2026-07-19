@@ -12,6 +12,7 @@ use App\Support\LocaleUrl;
 use App\Support\PublicLayoutProps;
 use App\Support\Seo\SeoProps;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -37,7 +38,7 @@ class PostController extends Controller
             [
                 'contentType' => [
                     'slug' => $contentType->slug,
-                    'name' => $contentType->translate()?->name ?? ucfirst($contentType->slug),
+                    'name' => $this->contentTypeName($contentType),
                 ],
                 'posts' => $posts,
             ],
@@ -49,13 +50,14 @@ class PostController extends Controller
      */
     public function show(Request $request, ContentType $contentType, PostTranslation $translation): Response
     {
-        $post = $translation->post;
+        $post = $translation->post()->firstOrFail();
         $allTranslations = $post->translations()->published()->with('language')->get();
 
         $hreflang = [];
         foreach ($allTranslations as $tr) {
             $path = "/{$contentType->slug}/{$tr->slug}";
-            $hreflang[$tr->language->code] = url(LocaleUrl::for($tr->language->code, $path));
+            $languageCode = $tr->language->code;
+            $hreflang[$languageCode] = URL::to(LocaleUrl::for($languageCode, $path));
         }
 
         $seo = SeoProps::for(
@@ -64,7 +66,7 @@ class PostController extends Controller
             canonical: url()->current(),
             hreflang: $hreflang,
             ogType: 'article',
-            ogImage: $post->featured_image ? url($post->featured_image) : null,
+            ogImage: $post->featured_image ? URL::to($post->featured_image) : null,
         );
 
         $jsonLd = [
@@ -72,7 +74,7 @@ class PostController extends Controller
             '@type' => 'Article',
             'headline' => $translation->title,
             'datePublished' => $translation->published_at?->toIso8601String(),
-            'image' => $post->featured_image ? [url($post->featured_image)] : [],
+            'image' => $post->featured_image ? [URL::to($post->featured_image)] : [],
             'inLanguage' => app()->getLocale(),
         ];
 
@@ -82,11 +84,18 @@ class PostController extends Controller
                 'post' => $translation->load('post.type'),
                 'contentType' => [
                     'slug' => $contentType->slug,
-                    'name' => $contentType->translate()?->name ?? ucfirst($contentType->slug),
+                    'name' => $this->contentTypeName($contentType),
                 ],
                 'seo' => $seo,
                 'jsonLd' => $jsonLd,
             ],
         ));
+    }
+
+    private function contentTypeName(ContentType $contentType): string
+    {
+        return $contentType->translations()
+            ->where('language_id', Language::current()->id)
+            ->value('name') ?? ucfirst($contentType->slug);
     }
 }

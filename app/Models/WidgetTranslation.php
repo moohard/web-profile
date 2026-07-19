@@ -23,11 +23,13 @@ class WidgetTranslation extends Model
         'content',
     ];
 
+    /** @return BelongsTo<Widget, $this> */
     public function widget(): BelongsTo
     {
         return $this->belongsTo(Widget::class);
     }
 
+    /** @return BelongsTo<Language, $this> */
     public function language(): BelongsTo
     {
         return $this->belongsTo(Language::class);

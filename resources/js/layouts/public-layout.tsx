@@ -2,10 +2,8 @@ import { usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { Hero } from '@/components/public/hero';
-import {
-    WidgetRenderer,
-    type WidgetItem,
-} from '@/components/public/widget-renderer';
+import { WidgetRenderer } from '@/components/public/widget-renderer';
+import type { WidgetItem } from '@/components/public/widget-renderer';
 import { JsonLd } from '@/components/seo/json-ld';
 import { MetaHead } from '@/components/seo/meta-head';
 

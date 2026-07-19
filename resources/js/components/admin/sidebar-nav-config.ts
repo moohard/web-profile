@@ -16,16 +16,11 @@ import {
     Star,
     Tag,
     Users,
-    type LucideIcon,
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 export type NavGroup =
-    | 'dashboard'
-    | 'content'
-    | 'pages'
-    | 'appearance'
-    | 'interaction'
-    | 'system';
+    'dashboard' | 'content' | 'pages' | 'appearance' | 'interaction' | 'system';
 
 export type NavItem = {
     label: string;

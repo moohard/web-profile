@@ -21,11 +21,13 @@ class MenuItemTranslation extends Model
         'label',
     ];
 
+    /** @return BelongsTo<MenuItem, $this> */
     public function menuItem(): BelongsTo
     {
         return $this->belongsTo(MenuItem::class);
     }
 
+    /** @return BelongsTo<Language, $this> */
     public function language(): BelongsTo
     {
         return $this->belongsTo(Language::class);

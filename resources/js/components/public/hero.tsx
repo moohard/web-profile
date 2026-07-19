@@ -31,7 +31,9 @@ export function Hero({
             )}
             <div className="relative z-10 mx-auto max-w-6xl p-8 md:p-16">
                 {heading && (
-                    <h1 className="text-3xl font-bold md:text-5xl">{heading}</h1>
+                    <h1 className="text-3xl font-bold md:text-5xl">
+                        {heading}
+                    </h1>
                 )}
                 {subheading && (
                     <p className="mt-4 text-lg text-white/90">{subheading}</p>
@@ -39,7 +41,7 @@ export function Hero({
                 {ctaText && ctaLink && (
                     <a
                         href={ctaLink}
-                        className="bg-primary hover:bg-primary/90 mt-6 inline-block rounded px-6 py-3 font-semibold"
+                        className="mt-6 inline-block rounded bg-primary px-6 py-3 font-semibold hover:bg-primary/90"
                     >
                         {ctaText}
                     </a>

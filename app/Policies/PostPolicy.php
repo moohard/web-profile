@@ -23,11 +23,11 @@ class PostPolicy
      */
     public function create(User $user): bool
     {
-        return in_array($user->roles->first()?->name, [
+        return $user->hasAnyRole([
             UserRole::Admin->value,
             UserRole::Editor->value,
             UserRole::Author->value,
-        ], true);
+        ]);
     }
 
     /**

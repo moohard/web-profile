@@ -5,8 +5,10 @@ import {
     GROUP_LABELS,
     GROUP_ORDER,
     NAV_ITEMS,
-    type NavGroup,
-    type NavItem as AdminNavItem,
+} from '@/components/admin/sidebar-nav-config';
+import type {
+    NavGroup,
+    NavItem as AdminNavItem,
 } from '@/components/admin/sidebar-nav-config';
 import AppLogo from '@/components/app-logo';
 import { NavMain } from '@/components/nav-main';
@@ -44,8 +46,7 @@ function buildAdminNavItems(
     }));
 
     return [...dynamicContentItems, ...NAV_ITEMS].filter(
-        (item) =>
-            !item.permission || userPermissions.includes(item.permission),
+        (item) => !item.permission || userPermissions.includes(item.permission),
     );
 }
 
@@ -59,12 +60,13 @@ function toNavMainItem(item: AdminNavItem): NavItem {
 
 export function AppSidebar() {
     const { contentTypes, auth } = usePage().props;
-    const userPermissions: string[] =
-        (auth?.user?.permissions as string[] | undefined) ?? [];
-    const types = (contentTypes as SharedContentType[] | undefined) ?? [];
+    const userPermissions = auth?.user?.permissions as string[] | undefined;
 
     const groupedItems = useMemo(() => {
-        const allItems = buildAdminNavItems(types, userPermissions);
+        // Normalisasi di dalam callback agar referensi array tidak berubah tiap render
+        const types = (contentTypes as SharedContentType[] | undefined) ?? [];
+        const permissions = userPermissions ?? [];
+        const allItems = buildAdminNavItems(types, permissions);
         const byGroup = new Map<NavGroup, NavItem[]>();
 
         for (const item of allItems) {
@@ -73,14 +75,14 @@ export function AppSidebar() {
             byGroup.set(item.group, list);
         }
 
-        return GROUP_ORDER.filter((group) => (byGroup.get(group)?.length ?? 0) > 0).map(
-            (group) => ({
-                group,
-                label: GROUP_LABELS[group],
-                items: byGroup.get(group) ?? [],
-            }),
-        );
-    }, [types, userPermissions]);
+        return GROUP_ORDER.filter(
+            (group) => (byGroup.get(group)?.length ?? 0) > 0,
+        ).map((group) => ({
+            group,
+            label: GROUP_LABELS[group],
+            items: byGroup.get(group) ?? [],
+        }));
+    }, [contentTypes, userPermissions]);
 
     return (
         <Sidebar collapsible="icon" variant="inset">

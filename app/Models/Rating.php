@@ -16,6 +16,7 @@ class Rating extends Model
 {
     protected $fillable = ['comment', 'visitor_hash'];
 
+    /** @return HasMany<RatingScore, $this> */
     public function scores(): HasMany
     {
         return $this->hasMany(RatingScore::class);

@@ -1,6 +1,5 @@
-import PublicLayout, {
-    type PublicLayoutSharedProps,
-} from '@/layouts/public-layout';
+import PublicLayout from '@/layouts/public-layout';
+import type { PublicLayoutSharedProps } from '@/layouts/public-layout';
 
 type PostTranslationProp = {
     id: number;
@@ -39,9 +38,7 @@ export default function PostShow(props: PostShowProps) {
                     {contentType.name}
                 </p>
                 <h1>{post.title}</h1>
-                <div
-                    dangerouslySetInnerHTML={{ __html: post.body ?? '' }}
-                />
+                <div dangerouslySetInnerHTML={{ __html: post.body ?? '' }} />
             </article>
         </PublicLayout>
     );

@@ -13,9 +13,7 @@ export type WidgetItem = {
 export function WidgetRenderer({ widget }: { widget: WidgetItem }) {
     switch (widget.type) {
         case 'HtmlWidget':
-            return (
-                <HtmlWidget title={widget.title} content={widget.content} />
-            );
+            return <HtmlWidget title={widget.title} content={widget.content} />;
         default:
             // Tipe widget lain ditambah di fase fitur berikutnya
             return null;

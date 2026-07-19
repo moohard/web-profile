@@ -73,6 +73,25 @@ it('POST /admin/media menolak collection di luar allowlist', function () {
     expect($post->fresh()->getMedia('secret_gallery'))->toHaveCount(0);
 });
 
+it('POST /admin/media menolak SVG untuk mencegah XSS berbasis file', function () {
+    $admin = User::where('email', env('ADMIN_EMAIL', 'admin@papenajam.test'))->first();
+    $type = ContentType::where('slug', 'berita')->first();
+    $post = Post::factory()->create(['type_id' => $type->id]);
+
+    $response = $this->actingAs($admin)->post('/admin/media', [
+        'file' => UploadedFile::fake()->createWithContent(
+            'x.svg',
+            '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>',
+        ),
+        'model_type' => 'Post',
+        'model_id' => $post->id,
+        'collection' => 'featured_image',
+    ]);
+
+    $response->assertSessionHasErrors('file');
+    expect($post->fresh()->getMedia('featured_image'))->toHaveCount(0);
+});
+
 it('User tanpa media.create mendapat 403 pada upload', function () {
     // Hanya access-admin — tanpa permission media.* dari role
     $user = User::factory()->create()->givePermissionTo('access-admin');

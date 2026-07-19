@@ -19,11 +19,13 @@ class Tag extends Model
 
     protected $fillable = ['slug'];
 
+    /** @return BelongsToMany<Post, $this> */
     public function posts(): BelongsToMany
     {
         return $this->belongsToMany(Post::class, 'post_tags');
     }
 
+    /** @return HasMany<TagTranslation, $this> */
     public function translations(): HasMany
     {
         return $this->hasMany(TagTranslation::class);

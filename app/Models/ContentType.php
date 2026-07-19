@@ -47,21 +47,28 @@ class ContentType extends Model
         ];
     }
 
+    /** @return BelongsTo<WritingStyle, $this> */
     public function writingStyle(): BelongsTo
     {
         return $this->belongsTo(WritingStyle::class);
     }
 
+    /** @return HasMany<Post, $this> */
     public function posts(): HasMany
     {
         return $this->hasMany(Post::class, 'type_id');
     }
 
+    /** @return HasMany<ContentTypeTranslation, $this> */
     public function translations(): HasMany
     {
         return $this->hasMany(ContentTypeTranslation::class);
     }
 
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true)->orderBy('sort_order');

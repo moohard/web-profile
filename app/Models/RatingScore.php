@@ -26,11 +26,13 @@ class RatingScore extends Model
         ];
     }
 
+    /** @return BelongsTo<Rating, $this> */
     public function rating(): BelongsTo
     {
         return $this->belongsTo(Rating::class);
     }
 
+    /** @return BelongsTo<RatingCriterion, $this> */
     public function criterion(): BelongsTo
     {
         return $this->belongsTo(RatingCriterion::class, 'criterion_id');

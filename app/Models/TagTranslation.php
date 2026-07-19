@@ -17,11 +17,13 @@ class TagTranslation extends Model
 {
     protected $fillable = ['tag_id', 'language_id', 'name'];
 
+    /** @return BelongsTo<Tag, $this> */
     public function tag(): BelongsTo
     {
         return $this->belongsTo(Tag::class);
     }
 
+    /** @return BelongsTo<Language, $this> */
     public function language(): BelongsTo
     {
         return $this->belongsTo(Language::class);

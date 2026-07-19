@@ -7,6 +7,8 @@ namespace App\Support;
 use App\Enums\MenuLocation;
 use App\Models\Language;
 use App\Models\Menu;
+use App\Models\MenuItem;
+use App\Models\MenuItemTranslation;
 use App\Models\WidgetPlacement;
 use App\Services\Html\Sanitizer;
 use Illuminate\Support\Facades\Cache;
@@ -21,9 +23,9 @@ class PublicLayoutProps
      *
      * @return array{
      *     locale: string,
-     *     locales: list<array{code: string, name: string}>,
-     *     headerMenu: list<array{label: string, url: string}>,
-     *     footerMenu: list<array{label: string, url: string}>,
+     *     locales: array<int, array{code: string, name: string}>,
+     *     headerMenu: array<int, array{label: string, url: string}>,
+     *     footerMenu: array<int, array{label: string, url: string}>,
      *     region: array{
      *         widgets: array{
      *             beforeContent: list<array{type: string, config: mixed, title: ?string, content: ?string}>,
@@ -39,9 +41,9 @@ class PublicLayoutProps
         $langId = Language::current()->id;
 
         return Cache::remember("public_layout.{$langId}", now()->addHour(), function () use ($langId) {
-            $headerMenu = static::resolveMenu(MenuLocation::Header, $langId);
-            $footerMenu = static::resolveMenu(MenuLocation::Footer, $langId);
-            $widgets = static::resolveWidgets($langId);
+            $headerMenu = self::resolveMenu(MenuLocation::Header, $langId);
+            $footerMenu = self::resolveMenu(MenuLocation::Footer, $langId);
+            $widgets = self::resolveWidgets($langId);
             $locales = Language::active()
                 ->get(['code', 'name'])
                 ->map(fn (Language $lang) => [
@@ -64,7 +66,7 @@ class PublicLayoutProps
     }
 
     /**
-     * @return list<array{label: string, url: string}>
+     * @return array<int, array{label: string, url: string}>
      */
     private static function resolveMenu(MenuLocation $location, int $langId): array
     {
@@ -78,10 +80,14 @@ class PublicLayoutProps
             ->with(['translations' => fn ($q) => $q->where('language_id', $langId)])
             ->orderBy('sort_order')
             ->get()
-            ->map(fn ($item) => [
-                'label' => $item->translations->first()?->label ?? '',
-                'url' => $item->url ?? '#',
-            ])
+            ->map(function (MenuItem $item): array {
+                $translation = $item->translations->first();
+
+                return [
+                    'label' => $translation instanceof MenuItemTranslation ? $translation->label : '',
+                    'url' => $item->url ?? '#',
+                ];
+            })
             ->values()
             ->all();
     }
@@ -124,11 +130,7 @@ class PublicLayoutProps
             }
 
             $translation = $widget->translations->first();
-            $key = $positionMap[$placement->position->value] ?? null;
-
-            if ($key === null) {
-                continue;
-            }
+            $key = $positionMap[$placement->position->value];
 
             $content = $translation?->content;
 

@@ -11,15 +11,16 @@ use App\Models\PostTranslation;
 
 /**
  * Resolve path publik (tanpa prefix locale) ke jenis konten yang sesuai.
- *
- * @return array{kind: 'home'}
- *                             | array{kind: 'archive', contentType: ContentType}
- *                             | array{kind: 'single', post: \App\Models\Post, translation: PostTranslation, contentType: ContentType}
- *                             | array{kind: 'page', page: \App\Models\Page, translation: PageTranslation}
- *                             | array{kind: 'notFound'}
  */
 class PublicPathResolver
 {
+    /**
+     * @return array{kind: 'home'}
+     *                             | array{kind: 'archive', contentType: ContentType}
+     *                             | array{kind: 'single', post: \App\Models\Post, translation: PostTranslation, contentType: ContentType}
+     *                             | array{kind: 'page', page: \App\Models\Page, translation: PageTranslation}
+     *                             | array{kind: 'notFound'}
+     */
     public static function resolve(string $path): array
     {
         $path = trim($path, '/');

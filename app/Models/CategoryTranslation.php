@@ -17,11 +17,13 @@ class CategoryTranslation extends Model
 {
     protected $fillable = ['category_id', 'language_id', 'name'];
 
+    /** @return BelongsTo<Category, $this> */
     public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
+    /** @return BelongsTo<Language, $this> */
     public function language(): BelongsTo
     {
         return $this->belongsTo(Language::class);

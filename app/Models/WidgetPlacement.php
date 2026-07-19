@@ -35,11 +35,13 @@ class WidgetPlacement extends Model
         ];
     }
 
+    /** @return BelongsTo<Widget, $this> */
     public function widget(): BelongsTo
     {
         return $this->belongsTo(Widget::class);
     }
 
+    /** @return HasMany<WidgetPlacementTarget, $this> */
     public function targets(): HasMany
     {
         return $this->hasMany(WidgetPlacementTarget::class, 'placement_id');

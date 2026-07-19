@@ -13,6 +13,30 @@ jobs:
   ci:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: papenajam
+          POSTGRES_PASSWORD: papenajam
+          POSTGRES_DB: db_development
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U papenajam"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      # Nilai ini menang atas .env.example (Dotenv immutable tidak menimpa env yang sudah ada)
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: db_development
+      DB_USERNAME: papenajam
+      DB_PASSWORD: papenajam
+
     steps:
       - name: Checkout code
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
@@ -24,6 +48,7 @@ jobs:
         with:
           php-version: '8.4'
           tools: composer:v2
+          extensions: pdo_pgsql, pgsql
           coverage: none
 
       - name: Setup Node

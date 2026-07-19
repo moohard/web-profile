@@ -3,8 +3,8 @@ import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { destroy, index as mediaIndex, store } from '@/routes/admin/media';
 import { dashboard } from '@/routes/admin';
+import { destroy, index as mediaIndex, store } from '@/routes/admin/media';
 
 type MediaItem = {
     id: number;
@@ -74,7 +74,12 @@ export default function MediaIndex({ media }: { media: MediaPage }) {
                             id="media-file"
                             type="file"
                             accept=".jpg,.jpeg,.png,.webp,.svg,image/*"
-                            onChange={(e) => form.setData('file', e.target.files?.[0] ?? null)}
+                            onChange={(e) =>
+                                form.setData(
+                                    'file',
+                                    e.target.files?.[0] ?? null,
+                                )
+                            }
                         />
                         <InputError message={form.errors.file} />
                     </div>
@@ -85,9 +90,12 @@ export default function MediaIndex({ media }: { media: MediaPage }) {
                             id="media-model-type"
                             value={form.data.model_type}
                             onChange={(e) =>
-                                form.setData('model_type', e.target.value as UploadForm['model_type'])
+                                form.setData(
+                                    'model_type',
+                                    e.target.value as UploadForm['model_type'],
+                                )
                             }
-                            className="border-input bg-background h-9 rounded-md border px-2 text-sm"
+                            className="h-9 rounded-md border border-input bg-background px-2 text-sm"
                         >
                             <option value="Post">Post</option>
                             <option value="Page">Page</option>
@@ -103,7 +111,12 @@ export default function MediaIndex({ media }: { media: MediaPage }) {
                             type="number"
                             min={1}
                             value={form.data.model_id}
-                            onChange={(e) => form.setData('model_id', Number.parseInt(e.target.value, 10) || 0)}
+                            onChange={(e) =>
+                                form.setData(
+                                    'model_id',
+                                    Number.parseInt(e.target.value, 10) || 0,
+                                )
+                            }
                             className="w-28"
                         />
                         <InputError message={form.errors.model_id} />
@@ -114,41 +127,59 @@ export default function MediaIndex({ media }: { media: MediaPage }) {
                         <Input
                             id="media-collection"
                             value={form.data.collection}
-                            onChange={(e) => form.setData('collection', e.target.value)}
+                            onChange={(e) =>
+                                form.setData('collection', e.target.value)
+                            }
                             placeholder="featured_image"
                             className="w-40"
                         />
                         <InputError message={form.errors.collection} />
                     </div>
 
-                    <Button type="submit" disabled={form.processing || !form.data.file}>
+                    <Button
+                        type="submit"
+                        disabled={form.processing || !form.data.file}
+                    >
                         {form.processing ? 'Mengunggah…' : 'Upload'}
                     </Button>
 
                     {form.progress && (
-                        <progress value={form.progress.percentage} max={100} className="h-2 w-full">
+                        <progress
+                            value={form.progress.percentage}
+                            max={100}
+                            className="h-2 w-full"
+                        >
                             {form.progress.percentage}%
                         </progress>
                     )}
                 </form>
 
                 {media.data.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Belum ada media. Unggah file di atas.</p>
+                    <p className="text-sm text-muted-foreground">
+                        Belum ada media. Unggah file di atas.
+                    </p>
                 ) : (
                     <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
                         {media.data.map((item) => (
-                            <div key={item.id} className="space-y-2 rounded-lg border p-2">
+                            <div
+                                key={item.id}
+                                className="space-y-2 rounded-lg border p-2"
+                            >
                                 <img
                                     src={item.thumb_url || item.url}
                                     alt={item.file_name}
                                     className="aspect-square w-full rounded object-cover"
                                     loading="lazy"
                                 />
-                                <p className="truncate text-xs" title={item.file_name}>
+                                <p
+                                    className="truncate text-xs"
+                                    title={item.file_name}
+                                >
                                     {item.file_name}
                                 </p>
                                 <p className="truncate text-[10px] text-muted-foreground">
-                                    {item.model_type}#{item.model_id} · {item.collection_name}
+                                    {item.model_type}#{item.model_id} ·{' '}
+                                    {item.collection_name}
                                 </p>
                                 <Button
                                     type="button"

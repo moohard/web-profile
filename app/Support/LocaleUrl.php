@@ -10,7 +10,11 @@ use Throwable;
 
 class LocaleUrl
 {
-    /** Ambil daftar locale aktif (code). */
+    /**
+     * Ambil daftar locale aktif (code).
+     *
+     * @return Collection<int, string>
+     */
     public static function active(): Collection
     {
         try {

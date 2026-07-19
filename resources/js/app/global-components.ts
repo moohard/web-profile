@@ -14,7 +14,9 @@ const registry: ComponentRegistry = {
 
 export function scanGlobalComponents(root: HTMLElement = document.body): void {
     Object.entries(registry).forEach(([name, hydrate]) => {
-        root.querySelectorAll<HTMLElement>(`[data-component="${name}"]`).forEach(hydrate);
+        root.querySelectorAll<HTMLElement>(
+            `[data-component="${name}"]`,
+        ).forEach(hydrate);
     });
 }
 

@@ -26,11 +26,13 @@ class Gallery extends Model
         ];
     }
 
+    /** @return HasMany<GalleryImage, $this> */
     public function images(): HasMany
     {
         return $this->hasMany(GalleryImage::class)->orderBy('sort_order');
     }
 
+    /** @return HasMany<GalleryTranslation, $this> */
     public function translations(): HasMany
     {
         return $this->hasMany(GalleryTranslation::class);

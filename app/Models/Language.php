@@ -34,11 +34,19 @@ class Language extends Model
         ];
     }
 
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true)->orderBy('sort_order');
     }
 
+    /**
+     * @param  Builder<static>  $query
+     * @return Builder<static>
+     */
     public function scopeDefault(Builder $query): Builder
     {
         return $query->where('is_default', true);
@@ -71,12 +79,18 @@ class Language extends Model
         return static::where('code', app()->getLocale())->first() ?? static::defaultModel();
     }
 
-    /** Reset cache — panggil setelah seeder / perubahan tabel languages. */
+    /**
+     * Reset cache bahasa secara selektif — panggil setelah seeder / perubahan tabel languages.
+     * Hanya menghapus key milik model ini (tidak Cache::flush global) agar cache lain aman.
+     */
     public static function flushCache(): void
     {
         Cache::forget('language.default_code');
         Cache::forget('language.default');
-        // keys dinamis per-code tidak bisa di-flush selektif; flush prefix:
-        Cache::flush(); // aman di dev; di prod pakai Cache::tags bila didukung
+
+        // Hapus key id_for.{code} untuk seluruh kode yang saat ini ada di tabel.
+        foreach (static::query()->pluck('code') as $code) {
+            Cache::forget("language.id_for.{$code}");
+        }
     }
 }

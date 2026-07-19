@@ -58,6 +58,7 @@ class Testimonial extends Model implements HasMedia
         $this->addMediaCollection('photo')->singleFile();
     }
 
+    /** @return BelongsTo<Media, $this> */
     public function photoMedia(): BelongsTo
     {
         return $this->belongsTo(Media::class, 'photo_media_id');

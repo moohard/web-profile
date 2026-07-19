@@ -37,7 +37,8 @@ export function MediaPicker({
             preserveScroll: true,
             preserveState: true,
             onSuccess: (page) => {
-                const pageMedia = page.props.media as { data?: MediaItem[] } | undefined;
+                const pageMedia = page.props.media as
+                    { data?: MediaItem[] } | undefined;
                 setMedia(pageMedia?.data ?? []);
             },
             onFinish: () => setLoading(false),
@@ -49,6 +50,7 @@ export function MediaPicker({
             open={open}
             onOpenChange={(value) => {
                 setOpen(value);
+
                 if (value) {
                     load();
                 }
@@ -64,9 +66,13 @@ export function MediaPicker({
                     <DialogTitle>Pilih media</DialogTitle>
                 </DialogHeader>
                 {loading && media.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Memuat media…</p>
+                    <p className="text-sm text-muted-foreground">
+                        Memuat media…
+                    </p>
                 ) : media.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">Belum ada media di pustaka.</p>
+                    <p className="text-sm text-muted-foreground">
+                        Belum ada media di pustaka.
+                    </p>
                 ) : (
                     <div className="grid max-h-[60vh] grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-4">
                         {media.map((item) => (

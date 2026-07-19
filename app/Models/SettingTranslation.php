@@ -17,6 +17,7 @@ class SettingTranslation extends Model
 {
     protected $fillable = ['key', 'language_id', 'value'];
 
+    /** @return BelongsTo<Language, $this> */
     public function language(): BelongsTo
     {
         return $this->belongsTo(Language::class);

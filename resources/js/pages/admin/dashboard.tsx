@@ -42,25 +42,35 @@ export default function AdminDashboard({
                         <CardHeader>
                             <CardTitle className="text-sm">Konten</CardTitle>
                         </CardHeader>
-                        <CardContent className="text-3xl font-bold">{stats.posts}</CardContent>
+                        <CardContent className="text-3xl font-bold">
+                            {stats.posts}
+                        </CardContent>
                     </Card>
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-sm">Halaman</CardTitle>
                         </CardHeader>
-                        <CardContent className="text-3xl font-bold">{stats.pages}</CardContent>
+                        <CardContent className="text-3xl font-bold">
+                            {stats.pages}
+                        </CardContent>
                     </Card>
                     <Card>
                         <CardHeader>
                             <CardTitle className="text-sm">Media</CardTitle>
                         </CardHeader>
-                        <CardContent className="text-3xl font-bold">{stats.media}</CardContent>
+                        <CardContent className="text-3xl font-bold">
+                            {stats.media}
+                        </CardContent>
                     </Card>
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-sm">Pesan baru</CardTitle>
+                            <CardTitle className="text-sm">
+                                Pesan baru
+                            </CardTitle>
                         </CardHeader>
-                        <CardContent className="text-3xl font-bold">{stats.contactNew}</CardContent>
+                        <CardContent className="text-3xl font-bold">
+                            {stats.contactNew}
+                        </CardContent>
                     </Card>
                 </div>
 
@@ -71,7 +81,9 @@ export default function AdminDashboard({
                         </CardHeader>
                         <CardContent>
                             {draftPosts.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Belum ada draft.</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Belum ada draft.
+                                </p>
                             ) : (
                                 <ul className="space-y-1 text-sm">
                                     {draftPosts.map((post) => (
@@ -88,13 +100,17 @@ export default function AdminDashboard({
                         </CardHeader>
                         <CardContent>
                             {newContactMessages.length === 0 ? (
-                                <p className="text-sm text-muted-foreground">Belum ada pesan baru.</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Belum ada pesan baru.
+                                </p>
                             ) : (
                                 <ul className="space-y-1 text-sm">
                                     {newContactMessages.map((message) => (
                                         <li key={message.id}>
                                             {message.name}
-                                            {message.subject ? ` — ${message.subject}` : ''}
+                                            {message.subject
+                                                ? ` — ${message.subject}`
+                                                : ''}
                                         </li>
                                     ))}
                                 </ul>

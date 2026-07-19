@@ -23,11 +23,13 @@ class GalleryTranslation extends Model
         'description',
     ];
 
+    /** @return BelongsTo<Gallery, $this> */
     public function gallery(): BelongsTo
     {
         return $this->belongsTo(Gallery::class);
     }
 
+    /** @return BelongsTo<Language, $this> */
     public function language(): BelongsTo
     {
         return $this->belongsTo(Language::class);

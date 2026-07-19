@@ -33,11 +33,13 @@ class Widget extends Model
         ];
     }
 
+    /** @return HasMany<WidgetPlacement, $this> */
     public function placements(): HasMany
     {
         return $this->hasMany(WidgetPlacement::class);
     }
 
+    /** @return HasMany<WidgetTranslation, $this> */
     public function translations(): HasMany
     {
         return $this->hasMany(WidgetTranslation::class);

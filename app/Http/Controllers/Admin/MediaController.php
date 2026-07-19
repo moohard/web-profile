@@ -8,13 +8,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Page;
 use App\Models\Post;
 use App\Models\Testimonial;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
-use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class MediaController extends Controller
@@ -63,7 +62,9 @@ class MediaController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'file' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,svg', 'max:10240'],
+            // SVG sengaja ditolak: format ini dapat membawa script/foreignObject
+            // bila disajikan kembali sebagai file publik.
+            'file' => ['required', 'file', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
             'model_type' => ['required', 'in:Post,Page,Testimonial'],
             'model_id' => ['required', 'integer'],
             'collection' => [
@@ -76,10 +77,12 @@ class MediaController extends Controller
 
         $model = $this->resolveModel($validated['model_type'], (int) $validated['model_id']);
         $this->authorize('update', $model);
+        $file = $request->file('file');
 
-        /** @var HasMedia&Model $model */
+        abort_unless($file instanceof UploadedFile, 422, 'File upload tidak valid.');
+
         $media = $model
-            ->addMediaFromRequest('file')
+            ->addMedia($file)
             ->toMediaCollection($validated['collection']);
 
         return back()->with('success', 'Media uploaded: '.$media->file_name);
@@ -92,11 +95,10 @@ class MediaController extends Controller
     {
         $parent = $media->model;
 
-        if ($parent instanceof Model) {
+        if ($parent instanceof Post || $parent instanceof Page || $parent instanceof Testimonial) {
             $this->authorize('update', $parent);
-        } else {
-            // Media orphan: tetap butuh permission media.delete (via middleware rute)
-            abort_unless($parent === null, 403);
+        } elseif ($parent !== null) {
+            abort(403);
         }
 
         $media->delete();
@@ -107,7 +109,7 @@ class MediaController extends Controller
     /**
      * Resolve model parent media dari tipe & id.
      */
-    private function resolveModel(string $modelType, int $modelId): Model
+    private function resolveModel(string $modelType, int $modelId): Post|Page|Testimonial
     {
         $class = match ($modelType) {
             'Post' => Post::class,

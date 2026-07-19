@@ -1,6 +1,5 @@
-import PublicLayout, {
-    type PublicLayoutSharedProps,
-} from '@/layouts/public-layout';
+import PublicLayout from '@/layouts/public-layout';
+import type { PublicLayoutSharedProps } from '@/layouts/public-layout';
 
 type ContentTypeProp = {
     slug: string;

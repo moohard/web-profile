@@ -46,8 +46,11 @@ Route::get('/sitemap.xml', function () {
     $path = public_path('sitemap.xml');
 
     abort_unless(is_file($path), 404);
+    $contents = file_get_contents($path);
 
-    return response(file_get_contents($path), 200, [
+    abort_unless(is_string($contents), 404);
+
+    return response($contents, 200, [
         'Content-Type' => 'application/xml; charset=UTF-8',
     ]);
 })->name('sitemap');

@@ -21,11 +21,13 @@ class PostTag extends Model
 
     protected $fillable = ['post_id', 'tag_id'];
 
+    /** @return BelongsTo<Post, $this> */
     public function post(): BelongsTo
     {
         return $this->belongsTo(Post::class);
     }
 
+    /** @return BelongsTo<Tag, $this> */
     public function tag(): BelongsTo
     {
         return $this->belongsTo(Tag::class);

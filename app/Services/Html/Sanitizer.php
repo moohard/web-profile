@@ -14,6 +14,8 @@ class Sanitizer
      */
     public function clean(string $html): string
     {
-        return Purify::config('cms_page')->clean($html);
+        $cleaned = Purify::config('cms_page')->clean($html);
+
+        return is_string($cleaned) ? $cleaned : '';
     }
 }

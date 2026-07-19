@@ -28,11 +28,13 @@ class GalleryImage extends Model
         ];
     }
 
+    /** @return BelongsTo<Gallery, $this> */
     public function gallery(): BelongsTo
     {
         return $this->belongsTo(Gallery::class);
     }
 
+    /** @return HasMany<GalleryImageTranslation, $this> */
     public function translations(): HasMany
     {
         return $this->hasMany(GalleryImageTranslation::class);
