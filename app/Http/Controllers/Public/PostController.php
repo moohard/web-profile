@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ContentType;
 use App\Models\Language;
 use App\Models\PostTranslation;
+use App\Support\LocaleUrl;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -39,15 +40,31 @@ class PostController extends Controller
     }
 
     /**
-     * Single post (translation published untuk locale aktif).
+     * Single post (translation published untuk locale aktif) + props SEO.
      */
     public function show(Request $request, ContentType $contentType, PostTranslation $translation): Response
     {
+        $post = $translation->post;
+        $allTranslations = $post->translations()->published()->with('language')->get();
+
+        $hreflang = [];
+        foreach ($allTranslations as $tr) {
+            $path = "/{$contentType->slug}/{$tr->slug}";
+            $hreflang[$tr->language->code] = url(LocaleUrl::for($tr->language->code, $path));
+        }
+
         return Inertia::render('public/post-show', [
             'post' => $translation->load('post.type'),
             'contentType' => [
                 'slug' => $contentType->slug,
                 'name' => $contentType->translate()?->name ?? ucfirst($contentType->slug),
+            ],
+            'seo' => [
+                'title' => $translation->meta_title ?? $translation->title,
+                'description' => $translation->meta_description,
+                'canonical' => url()->current(),
+                'hreflang' => $hreflang,
+                'ogType' => 'article',
             ],
         ]);
     }

@@ -1,33 +1,45 @@
-import { Head } from '@inertiajs/react';
-
-type ContentTypeProp = {
-    slug: string;
-    name: string;
-};
+import { MetaHead } from '@/components/seo/meta-head';
 
 type PostTranslationProp = {
     id: number;
-    title: string;
-    body?: string | null;
     slug: string;
+    title: string;
+    body: string | null;
+    meta_title: string | null;
+    meta_description: string | null;
+};
+
+type SeoProp = {
+    title: string;
+    description?: string;
+    canonical?: string;
+    hreflang?: Record<string, string>;
+    ogType?: string;
 };
 
 export default function PostShow({
     post,
     contentType,
+    seo,
 }: {
     post: PostTranslationProp;
-    contentType: ContentTypeProp;
+    contentType: { slug: string; name: string };
+    seo: SeoProp;
 }) {
     return (
         <>
-            <Head title={post.title} />
-            <main className="prose p-8">
-                <p className="text-sm text-muted-foreground">{contentType.name}</p>
+            <MetaHead {...seo} />
+            <main className="prose mx-auto max-w-3xl p-8">
+                <a href="/" className="text-sm text-blue-600 hover:underline">
+                    ← Beranda
+                </a>
+                <p className="text-sm text-muted-foreground">
+                    {contentType.name}
+                </p>
                 <h1>{post.title}</h1>
-                {post.body ? (
-                    <div dangerouslySetInnerHTML={{ __html: post.body }} />
-                ) : null}
+                <div
+                    dangerouslySetInnerHTML={{ __html: post.body ?? '' }}
+                />
             </main>
         </>
     );
