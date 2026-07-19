@@ -1,13 +1,8 @@
-import { Head } from '@inertiajs/react';
+import { ComingSoon } from '@/components/admin/coming-soon';
 import { dashboard } from '@/routes/admin';
 
-export default function AdminPlaceholder() {
-    return (
-        <>
-            <Head title="Admin" />
-            <div className="p-8">Area admin — bootstrap berhasil.</div>
-        </>
-    );
+export default function AdminPlaceholder({ section }: { section: string }) {
+    return <ComingSoon section={section} />;
 }
 
 AdminPlaceholder.layout = {

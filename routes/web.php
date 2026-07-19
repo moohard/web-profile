@@ -36,7 +36,10 @@ $dispatchPublicPath = function () {
 
 // Segment pertama yang tidak boleh tertangkap catch-all publik (rute sistem).
 // Pola dipakai di where('slug1', ...) — negative lookahead.
-$publicSlug1 = '(?!admin$|login$|logout$|register$|dashboard$|settings$|password$|user$|email$|two-factor$|sanctum$|up$)[a-z0-9\-]+';
+// Pakai (?:/|$) bukan $ saja: di compiled regex Symfony, $ merujuk ke akhir path
+// penuh, sehingga /admin/posts lolos ke catch-all (admin diikuti /posts, bukan end).
+$reserved = 'admin|login|logout|register|dashboard|settings|password|user|email|two-factor|sanctum|up';
+$publicSlug1 = '(?!(?:'.$reserved.')(?:/|$))[a-z0-9\-]+';
 
 // ── Beranda (locale default, tanpa prefix) ──
 Route::get('/', [HomeController::class, 'index'])->name('home');
