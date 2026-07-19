@@ -15,7 +15,7 @@ it('Admin mendapat permission Tampilan/Sistem untuk filter sidebar', function ()
         ->get('/admin')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->component('admin/placeholder')
+            ->component('admin/dashboard')
             ->where('auth.user.permissions', function ($permissions) {
                 $p = collect($permissions);
 

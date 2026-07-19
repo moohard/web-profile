@@ -2,8 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\DashboardController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
-// Placeholder dashboard admin — diganti DashboardController di Fase 5.
-Route::get('/', fn () => Inertia::render('admin/placeholder'))->name('dashboard');
+Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
