@@ -22,6 +22,11 @@ class SetLocale
      */
     public function handle(Request $request, Closure $next): Response
     {
+        // Area admin tidak memakai prefix locale — biarkan apa adanya
+        if ($request->is('admin') || $request->is('admin/*') || $request->segment(1) === 'admin') {
+            return $next($request);
+        }
+
         $segment = $request->segment(1) ?? '';
 
         if (LocaleUrl::isNonDefaultLocale($segment)) {
