@@ -26,3 +26,14 @@ it('Sanitizer mempertahankan class design system', function () {
 
     expect($clean)->toContain('class="hero bg-blue-500"')->toContain('text-3xl');
 });
+
+it('Sanitizer membuang elemen di luar allowlist', function () {
+    $clean = app(Sanitizer::class)->clean('<p>ok</p><video src="x.mp4"></video><textarea>x</textarea>');
+    expect($clean)->not->toContain('<video')->not->toContain('<textarea');
+});
+
+it('Sanitizer membuang data: URL', function () {
+    $clean = app(Sanitizer::class)->clean('<a href="data:text/html,xss">x</a><img src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="x">');
+
+    expect($clean)->not->toContain('data:');
+});
