@@ -127,37 +127,37 @@ Dari sederhana → kompleks, tiap task TDD. Fase K1–K2 memberi taksonomi (kate
 ## K3 — Posts: Daftar & Hapus
 
 ### Task K3.1: PostController index + destroy
-- [ ] **Test dulu:** `PostCrudTest`:
+- [x] **Test dulu:** `PostCrudTest`:
   - Admin GET `/admin/posts` 200, render `admin/posts/index`, punya `posts.data`.
   - Filter `?type={slug}` & `?status=Draft|Published` bekerja.
   - **Author hanya melihat post miliknya** (`author_id`); Editor/Admin melihat semua.
   - DELETE menghapus (Admin/Editor semua; Author miliknya → selain miliknya 403). Extend `PostPolicyTest` bila perlu.
-- [ ] `PostController --resource`. `index`: query `Post::with('type','translations','author')`, filter type/status (status via `whereHas('translations')` locale aktif), scope Author (`when(author, ->where('author_id', id))`), paginate 20, map ke ringkasan (id, title locale aktif, type name, status, author, updated_at, edit url via Wayfinder). Kirim `contentTypes` untuk filter dropdown.
-- [ ] `destroy`: `$this->authorize('delete',$post)` → hapus (translations cascade dari FK).
-- [ ] Route resource `posts` (ganti placeholder), per-method policy.
+- [x] `PostController --resource`. `index`: query `Post::with('type','translations','author')`, filter type/status (status via `whereHas('translations')` locale aktif), scope Author (`when(author, ->where('author_id', id))`), paginate 20, map ke ringkasan (id, title locale aktif, type name, status, author, updated_at, edit url via Wayfinder). Kirim `contentTypes` untuk filter dropdown.
+- [x] `destroy`: `$this->authorize('delete',$post)` → hapus (translations cascade dari FK).
+- [x] Route resource `posts` (ganti placeholder), per-method policy.
 
 ### Task K3.2: UI Posts index
-- [ ] `admin/posts/index.tsx`: `DataTable` + filter (type select dari `contentTypes`, status), badge status, tombol Edit (Wayfinder `posts.edit`) & Hapus (konfirmasi). Empty state. types/lint/build hijau.
+- [x] `admin/posts/index.tsx`: `DataTable` + filter (type select dari `contentTypes`, status), badge status, tombol Edit (Wayfinder `posts.edit`) & Hapus (konfirmasi). Empty state. types/lint/build hijau.
 
 ---
 
 ## K4 — Editor Konten (create/edit)
 
 ### Task K4.1: store/update + PostRequest (backend)
-- [ ] **Test dulu:** `ContentEditorTranslationTest`:
+- [x] **Test dulu:** `ContentEditorTranslationTest`:
   - `store` membuat Post (type_id, category_id, tags[], featured via media picker) + `PostTranslation` untuk tiap bahasa yang diisi; `author_id` = user; body ter-sanitasi; status/published_at tersimpan; slug unik per (type, language).
   - `update` meng-upsert translations (tambah/ubah), sync tags, ganti featured.
   - Validasi: minimal 1 bahasa terisi (default locale wajib title+slug); slug bentrok → error.
   - Author boleh edit miliknya, tidak boleh milik orang lain (403).
-- [ ] `PostRequest`: `type_id` required exists content_types; `category_id` nullable exists; `tags` array of exists; `featured_media_id`/`featured_image` nullable; `translations` array keyed by language_id → { title required (min utk default), slug nullable, body nullable, status in Draft/Published, published_at nullable date, meta_title/meta_description nullable }.
-- [ ] `create`: kirim daftar `languages` aktif, `contentTypes`, `categories`, `tags` untuk form kosong.
-- [ ] `store`/`update` (transaksi): simpan Post; `ContentSlug::unique` per translation; `body` di-`Sanitizer::clean`; `tags()->sync`; featured via media (set `featured_image` atau relasikan media id yang sudah di-upload lewat MediaPicker); `author_id` saat create.
-- [ ] `edit`: muat Post + semua translations (map by language code) + tags terpilih + featured url.
+- [x] `PostRequest`: `type_id` required exists content_types; `category_id` nullable exists; `tags` array of exists; `featured_media_id`/`featured_image` nullable; `translations` array keyed by language_id → { title required (min utk default), slug nullable, body nullable, status in Draft/Published, published_at nullable date, meta_title/meta_description nullable }.
+- [x] `create`: kirim daftar `languages` aktif, `contentTypes`, `categories`, `tags` untuk form kosong.
+- [x] `store`/`update` (transaksi): simpan Post; `ContentSlug::unique` per translation; `body` di-`Sanitizer::clean`; `tags()->sync`; featured via media (set `featured_image` atau relasikan media id yang sudah di-upload lewat MediaPicker); `author_id` saat create.
+- [x] `edit`: muat Post + semua translations (map by language code) + tags terpilih + featured url.
 
 ### Task K4.2: UI Editor (`posts/form.tsx`)
-- [ ] Dua kolom (PRD §8.5): **kolom utama** = `LanguageTabs` → per bahasa: title, slug (auto via `useSlugify`, bisa override), body `<textarea>`; **kolom samping** = jenis konten (select), kategori (select), tags (multi), featured image (`MediaPicker`), status (select Draft/Published), tanggal publish (input datetime), SEO (meta_title, meta_description).
-- [ ] Toggle bahasa + tombol **Terjemahkan dengan AI** & **Koreksi dengan AI** per field teks (komponen `AiSuggestButton`, diaktifkan penuh di K5 — di K4 render disabled/placeholder).
-- [ ] Submit via `useForm` → Wayfinder `posts.store`/`posts.update`. Toast + redirect ke index. types/lint/build hijau.
+- [x] Dua kolom (PRD §8.5): **kolom utama** = `LanguageTabs` → per bahasa: title, slug (auto via `useSlugify`, bisa override), body `<textarea>`; **kolom samping** = jenis konten (select), kategori (select), tags (multi), featured image (`MediaPicker`), status (select Draft/Published), tanggal publish (input datetime), SEO (meta_title, meta_description).
+- [x] Toggle bahasa + tombol **Terjemahkan dengan AI** & **Koreksi dengan AI** per field teks (komponen `AiSuggestButton`, diaktifkan penuh di K5 — di K4 render disabled/placeholder).
+- [x] Submit via `useForm` → Wayfinder `posts.store`/`posts.update`. Toast + redirect ke index. types/lint/build hijau.
 
 ---
 

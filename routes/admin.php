@@ -8,14 +8,23 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ContentTypeController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Admin\TagController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
+Route::prefix('posts')->name('posts.')->group(function (): void {
+    Route::get('/', [PostController::class, 'index'])->name('index');
+    Route::get('/create', [PostController::class, 'create'])->name('create');
+    Route::post('/', [PostController::class, 'store'])->name('store');
+    Route::get('/{post}/edit', [PostController::class, 'edit'])->name('edit');
+    Route::put('/{post}', [PostController::class, 'update'])->name('update');
+    Route::delete('/{post}', [PostController::class, 'destroy'])->name('destroy');
+});
+
 // Placeholder routes — diisi di fase berikutnya
-Route::get('/posts', fn () => Inertia::render('admin/placeholder', ['section' => 'Konten']))->name('posts.index');
 Route::get('/pages', fn () => Inertia::render('admin/placeholder', ['section' => 'Halaman']))->name('pages.index');
 Route::get('/menus', fn () => Inertia::render('admin/placeholder', ['section' => 'Menu']))->name('menus.index')->middleware('permission:admin.access-appearance');
 Route::get('/widgets', fn () => Inertia::render('admin/placeholder', ['section' => 'Widget']))->name('widgets.index')->middleware('permission:admin.access-appearance');
