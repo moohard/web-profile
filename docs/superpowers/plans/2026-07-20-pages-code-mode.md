@@ -69,8 +69,8 @@ tests/Feature/AiMarkupConformTest.php              [Create]
 - [x] `ai-suggest-button.tsx`: tambah dukungan mode markup (endpoint ai.markup-conform, payload {source_html}). Wire ke `pages/form.tsx` mode Code (tombol "Sesuaikan markup (AI)") → onAccept set content.html.
 
 ### H4 — Nav & Verifikasi
-- [ ] Sidebar "Halaman" (`pages.index`) sudah Wayfinder → arahkan ke controller nyata (otomatis). Hapus placeholder pages.
-- [ ] Verifikasi akhir: `php artisan test --compact` hijau; pint/phpstan/tsc/eslint/prettier/build:ssr hijau. Smoke: buat page Template (Editor) + page Code (Admin) → tampil di `/{slug}`; "Sesuaikan markup" memunculkan saran.
+- [x] Sidebar "Halaman" (`pages.index`) sudah Wayfinder → arahkan ke controller nyata (otomatis). Hapus placeholder pages.
+- [x] Verifikasi akhir: `php artisan test --compact` hijau; pint/phpstan/tsc/eslint/prettier/build:ssr hijau. Smoke: buat page Template (Editor) + page Code (Admin) → tampil di `/{slug}`; "Sesuaikan markup" memunculkan saran.
 
 ---
 
