@@ -43,9 +43,15 @@ if (! function_exists('setting_translated_flush')) {
 
 if (! function_exists('excerpt')) {
     /**
-     * Ringkas HTML jadi teks polos: strip tag, decode entity, rapikan whitespace,
+     * Ringkas HTML jadi teks polos: decode entity, strip tag, rapikan whitespace,
      * lalu potong ke $limit karakter (multibyte-safe) + elipsis bila melebihi limit.
      * Dipakai untuk excerpt kartu arsip & fallback meta description/OG.
+     *
+     * Urutan decode SEBELUM strip disengaja: bila decode dijalankan setelah strip,
+     * entity seperti "&lt;script&gt;" (bukan tag literal, lolos strip_tags) bisa
+     * berubah jadi tag mentah "<script>" tanpa kesempatan di-strip lagi (tag
+     * re-injection). Decode dulu memastikan strip_tags selalu jadi langkah terakhir
+     * yang melihat karakter "<"/">".
      */
     function excerpt(?string $html, int $limit = 160): string
     {
@@ -53,16 +59,16 @@ if (! function_exists('excerpt')) {
             return '';
         }
 
-        $text = Str::squish(html_entity_decode(strip_tags($html), ENT_QUOTES | ENT_HTML5));
+        $text = Str::squish(strip_tags(html_entity_decode($html, ENT_QUOTES | ENT_HTML5)));
 
         if ($text === '') {
             return '';
         }
 
-        if (mb_strlen($text) <= $limit) {
+        if (mb_strlen($text, 'UTF-8') <= $limit) {
             return $text;
         }
 
-        return mb_substr($text, 0, $limit).'…';
+        return mb_substr($text, 0, $limit, 'UTF-8').'…';
     }
 }
