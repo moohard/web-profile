@@ -15,6 +15,7 @@ type MediaItem = {
     file_name: string;
     url: string;
     thumb_url?: string;
+    alt?: string;
 };
 
 /**
@@ -87,7 +88,7 @@ export function MediaPicker({
                             >
                                 <img
                                     src={item.thumb_url || item.url}
-                                    alt={item.file_name}
+                                    alt={item.alt || item.file_name}
                                     className="aspect-square w-full object-cover"
                                     loading="lazy"
                                 />

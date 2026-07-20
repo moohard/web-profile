@@ -72,6 +72,10 @@ class RolePermissionSeeder extends Seeder
             $this->permissionNamesFor(['media']),
             ['posts.viewAny', 'posts.create', 'posts.update', 'posts.deleteOwn'],
         ));
+
+        // C4: reset cache Spatie di akhir agar role/permission yang baru
+        // di-sync langsung terbaca oleh request/test berikutnya.
+        app()[PermissionRegistrar::class]->forgetCachedPermissions();
     }
 
     /**

@@ -8,7 +8,10 @@ use App\Http\Controllers\Controller;
 use App\Models\PageTranslation;
 use App\Models\WidgetPlacementTarget;
 use App\Services\Html\Sanitizer;
+use App\Support\LocaleUrl;
 use App\Support\PublicLayoutProps;
+use App\Support\Seo\SeoProps;
+use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,6 +48,24 @@ class PageController extends Controller
             'enabled' => (bool) $page->sidebar_enabled,
         ];
         $props['page'] = $translation;
+
+        // hreflang: setiap terjemahan halaman yang published (slug bisa beda per bahasa).
+        $hreflang = [];
+        foreach ($page->translations()->where('status', 'Published')->with('language')->get() as $tr) {
+            if ($tr->language === null) {
+                continue;
+            }
+            $hreflang[$tr->language->code] = URL::to(LocaleUrl::for($tr->language->code, '/'.$tr->slug));
+        }
+
+        $props['seo'] = SeoProps::for(
+            title: $translation->meta_title ?: $translation->title,
+            description: $translation->meta_description,
+            canonical: url()->current(),
+            hreflang: SeoProps::withXDefault($hreflang),
+            ogType: 'website',
+            ogImage: $props['region']['hero']['image'] ? URL::to($props['region']['hero']['image']) : null,
+        );
 
         return Inertia::render('public/page-show', $props);
     }

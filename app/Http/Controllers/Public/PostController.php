@@ -40,15 +40,32 @@ class PostController extends Controller
                 'url' => LocaleUrl::for(app()->getLocale(), '/'.$contentType->slug.'/'.$t->slug),
             ]);
 
+        // Slug content type sama di semua bahasa → hreflang = 1 URL arsip per locale aktif.
+        $hreflang = [];
+        foreach (Language::active()->get() as $language) {
+            $hreflang[$language->code] = URL::to(LocaleUrl::for($language->code, '/'.$contentType->slug));
+        }
+
+        $name = $this->contentTypeName($contentType);
+
+        $seo = SeoProps::for(
+            title: $name,
+            description: $this->contentTypeDescription($contentType),
+            canonical: url()->current(),
+            hreflang: SeoProps::withXDefault($hreflang),
+            ogType: 'website',
+        );
+
         return Inertia::render('public/post-archive', array_merge(
             PublicLayoutProps::base(),
             [
                 'region' => PublicLayoutProps::region(WidgetPlacementTarget::TYPE_CONTENT_ARCHIVE, (string) $contentType->id),
                 'contentType' => [
                     'slug' => $contentType->slug,
-                    'name' => $this->contentTypeName($contentType),
+                    'name' => $name,
                 ],
                 'posts' => $posts,
+                'seo' => $seo,
             ],
         ));
     }
@@ -72,7 +89,7 @@ class PostController extends Controller
             title: $translation->meta_title ?? $translation->title,
             description: $translation->meta_description,
             canonical: url()->current(),
-            hreflang: $hreflang,
+            hreflang: SeoProps::withXDefault($hreflang),
             ogType: 'article',
             ogImage: $post->featured_image ? URL::to($post->featured_image) : null,
         );
@@ -109,5 +126,12 @@ class PostController extends Controller
         return $contentType->translations()
             ->where('language_id', Language::current()->id)
             ->value('name') ?? ucfirst($contentType->slug);
+    }
+
+    private function contentTypeDescription(ContentType $contentType): ?string
+    {
+        return $contentType->translations()
+            ->where('language_id', Language::current()->id)
+            ->value('description');
     }
 }

@@ -18,6 +18,22 @@ import {
     Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { dashboard } from '@/routes/admin';
+import categories from '@/routes/admin/categories';
+import contactMessages from '@/routes/admin/contact-messages';
+import contentTypes from '@/routes/admin/content-types';
+import galleries from '@/routes/admin/galleries';
+import media from '@/routes/admin/media';
+import menus from '@/routes/admin/menus';
+import pages from '@/routes/admin/pages';
+import ratingCriteria from '@/routes/admin/rating-criteria';
+import ratings from '@/routes/admin/ratings';
+import settings from '@/routes/admin/settings';
+import tags from '@/routes/admin/tags';
+import testimonials from '@/routes/admin/testimonials';
+import users from '@/routes/admin/users';
+import widgets from '@/routes/admin/widgets';
+import writingStyles from '@/routes/admin/writing-styles';
 
 export type NavGroup =
     'dashboard' | 'content' | 'pages' | 'appearance' | 'interaction' | 'system';
@@ -46,7 +62,7 @@ export const GROUP_ORDER: NavGroup[] = [
 export const NAV_ITEMS: NavItem[] = [
     {
         label: 'Dashboard',
-        href: '/admin',
+        href: dashboard.url(),
         icon: LayoutDashboard,
         group: 'dashboard',
     },
@@ -54,28 +70,28 @@ export const NAV_ITEMS: NavItem[] = [
     // Konten (entri dinamis per content type di-prepend di app-sidebar)
     {
         label: 'Kategori',
-        href: '/admin/categories',
+        href: categories.index.url(),
         icon: FolderTree,
         group: 'content',
         permission: 'content-types.viewAny',
     },
     {
         label: 'Tag',
-        href: '/admin/tags',
+        href: tags.index.url(),
         icon: Tag,
         group: 'content',
         permission: 'content-types.viewAny',
     },
     {
         label: 'Galeri',
-        href: '/admin/galleries',
+        href: galleries.index.url(),
         icon: GalleryVerticalEnd,
         group: 'content',
         permission: 'galleries.viewAny',
     },
     {
         label: 'Jenis konten',
-        href: '/admin/content-types',
+        href: contentTypes.index.url(),
         icon: Files,
         group: 'content',
         permission: 'content-types.viewAny',
@@ -84,7 +100,7 @@ export const NAV_ITEMS: NavItem[] = [
     // Halaman
     {
         label: 'Halaman',
-        href: '/admin/pages',
+        href: pages.index.url(),
         icon: FileText,
         group: 'pages',
         permission: 'pages.viewAny',
@@ -93,14 +109,14 @@ export const NAV_ITEMS: NavItem[] = [
     // Tampilan — Admin only
     {
         label: 'Menu',
-        href: '/admin/menus',
+        href: menus.index.url(),
         icon: MenuIcon,
         group: 'appearance',
         permission: 'admin.access-appearance',
     },
     {
         label: 'Widget',
-        href: '/admin/widgets',
+        href: widgets.index.url(),
         icon: LayoutTemplate,
         group: 'appearance',
         permission: 'admin.access-appearance',
@@ -109,21 +125,21 @@ export const NAV_ITEMS: NavItem[] = [
     // Interaksi
     {
         label: 'Pesan kontak',
-        href: '/admin/contact-messages',
+        href: contactMessages.index.url(),
         icon: Mail,
         group: 'interaction',
         permission: 'contact-messages.viewAny',
     },
     {
         label: 'Testimoni',
-        href: '/admin/testimonials',
+        href: testimonials.index.url(),
         icon: Quote,
         group: 'interaction',
         permission: 'testimonials.viewAny',
     },
     {
         label: 'Penilaian',
-        href: '/admin/ratings',
+        href: ratings.index.url(),
         icon: Star,
         group: 'interaction',
         permission: 'ratings.viewAny',
@@ -132,48 +148,48 @@ export const NAV_ITEMS: NavItem[] = [
     // Sistem — Admin only (kecuali Media)
     {
         label: 'Media',
-        href: '/admin/media',
+        href: media.index.url(),
         icon: Image,
         group: 'system',
     },
     {
         label: 'Pengguna',
-        href: '/admin/users',
+        href: users.index.url(),
         icon: Users,
         group: 'system',
         permission: 'admin.access-system',
     },
     {
         label: 'Pengaturan',
-        href: '/admin/settings',
+        href: settings.index.url(),
         icon: SettingsIcon,
         group: 'system',
         permission: 'admin.access-system',
     },
     {
         label: 'Konfigurasi AI',
-        href: '/admin/settings/ai',
+        href: settings.ai.url(),
         icon: Cpu,
         group: 'system',
         permission: 'admin.access-system',
     },
     {
         label: 'Bahasa',
-        href: '/admin/settings/languages',
+        href: settings.languages.url(),
         icon: Languages,
         group: 'system',
         permission: 'admin.access-system',
     },
     {
         label: 'Gaya bahasa',
-        href: '/admin/writing-styles',
+        href: writingStyles.index.url(),
         icon: PenTool,
         group: 'system',
         permission: 'admin.access-system',
     },
     {
         label: 'Kriteria penilaian',
-        href: '/admin/rating-criteria',
+        href: ratingCriteria.index.url(),
         icon: Star,
         group: 'system',
         permission: 'admin.access-system',

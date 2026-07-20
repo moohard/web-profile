@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import type { SeoProps } from '@/components/seo/meta-head';
 import PublicLayout from '@/layouts/public-layout';
 import type { PublicLayoutSharedProps } from '@/layouts/public-layout';
 
@@ -20,13 +21,14 @@ type PaginatedPosts = {
 type PostArchiveProps = PublicLayoutSharedProps & {
     contentType: ContentTypeProp;
     posts: PaginatedPosts;
+    seo: SeoProps;
 };
 
 export default function PostArchive(props: PostArchiveProps) {
-    const { contentType, posts } = props;
+    const { contentType, posts, seo, ...layoutProps } = props;
 
     return (
-        <PublicLayout {...props} title={contentType.name}>
+        <PublicLayout {...layoutProps} {...seo}>
             <h1>{contentType.name}</h1>
             <ul>
                 {posts.data?.map((p) => (

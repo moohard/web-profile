@@ -4,11 +4,39 @@ declare(strict_types=1);
 
 namespace App\Support\Seo;
 
+use App\Models\Language;
+use Throwable;
+
 /**
  * Builder props SEO untuk halaman publik (meta, canonical, hreflang, OG).
  */
 class SeoProps
 {
+    /**
+     * Tambahkan entri `x-default` yang menunjuk ke URL bahasa default
+     * (bukan sekadar entri pertama pada array). Bila default tak ada di map,
+     * fallback ke entri pertama; bila map kosong, kembalikan apa adanya.
+     *
+     * @param  array<string, string>  $hreflang  locale → absolute URL
+     * @return array<string, string>
+     */
+    public static function withXDefault(array $hreflang): array
+    {
+        if ($hreflang === []) {
+            return $hreflang;
+        }
+
+        try {
+            $default = Language::defaultModel()->code;
+        } catch (Throwable) {
+            $default = (string) config('app.locale', 'id');
+        }
+
+        $hreflang['x-default'] = $hreflang[$default] ?? reset($hreflang);
+
+        return $hreflang;
+    }
+
     /**
      * @param  array<string, string>  $hreflang  locale → absolute URL
      * @return array{

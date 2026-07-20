@@ -32,6 +32,9 @@ Route::get('/media', [MediaController::class, 'index'])->name('media.index');
 Route::post('/media', [MediaController::class, 'store'])
     ->middleware('permission:media.create')
     ->name('media.store');
+Route::patch('/media/{media}', [MediaController::class, 'update'])
+    ->middleware('permission:media.update')
+    ->name('media.update');
 Route::delete('/media/{media}', [MediaController::class, 'destroy'])
     ->middleware('permission:media.delete')
     ->name('media.destroy');

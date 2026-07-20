@@ -14,19 +14,38 @@ export type PublicMenuItem = {
 };
 
 /** Render item menu secara rekursif (mendukung sub-menu hierarkis). */
-function MenuNodes({ items }: { items: PublicMenuItem[] }) {
+function MenuNodes({
+    items,
+    currentPath,
+}: {
+    items: PublicMenuItem[];
+    currentPath: string;
+}) {
     return (
         <>
-            {items.map((item, i) => (
-                <li key={i}>
-                    <a href={item.url ?? '#'}>{item.label}</a>
-                    {item.children && item.children.length > 0 && (
-                        <ul className="ml-4">
-                            <MenuNodes items={item.children} />
-                        </ul>
-                    )}
-                </li>
-            ))}
+            {items.map((item, i) => {
+                const isActive =
+                    item.url !== undefined && item.url === currentPath;
+
+                return (
+                    <li key={i}>
+                        <a
+                            href={item.url ?? '#'}
+                            aria-current={isActive ? 'page' : undefined}
+                        >
+                            {item.label}
+                        </a>
+                        {item.children && item.children.length > 0 && (
+                            <ul className="ml-4">
+                                <MenuNodes
+                                    items={item.children}
+                                    currentPath={currentPath}
+                                />
+                            </ul>
+                        )}
+                    </li>
+                );
+            })}
         </>
     );
 }
@@ -81,6 +100,8 @@ export default function PublicLayout(props: PublicLayoutProps) {
 
     // Path tanpa prefix locale non-default (en)
     const pathWithoutLocale = url.replace(/^\/en(?=\/|$)/, '') || '/';
+    // URL menu sudah locale-prefixed → bandingkan dengan path aktif penuh (tanpa query).
+    const currentPath = url.split('?')[0];
 
     return (
         <>
@@ -115,7 +136,10 @@ export default function PublicLayout(props: PublicLayoutProps) {
                         Papenajam
                     </a>
                     <ul className="flex gap-4">
-                        <MenuNodes items={props.headerMenu ?? []} />
+                        <MenuNodes
+                            items={props.headerMenu ?? []}
+                            currentPath={currentPath}
+                        />
                     </ul>
                     <LocaleSwitcher
                         currentLocale={props.locale}
@@ -152,7 +176,10 @@ export default function PublicLayout(props: PublicLayoutProps) {
             <footer className="border-t bg-muted/50">
                 <div className="mx-auto max-w-6xl p-4">
                     <ul className="flex flex-wrap gap-4">
-                        <MenuNodes items={props.footerMenu ?? []} />
+                        <MenuNodes
+                            items={props.footerMenu ?? []}
+                            currentPath={currentPath}
+                        />
                     </ul>
                     {(region?.widgets?.footer ?? []).map((w, i) => (
                         <WidgetRenderer key={`ft-${i}`} widget={w} />

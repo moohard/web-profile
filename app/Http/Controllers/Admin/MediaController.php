@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Language;
 use App\Models\Page;
 use App\Models\Post;
 use App\Models\Testimonial;
@@ -49,10 +50,21 @@ class MediaController extends Controller
                 'thumb_url' => $item->hasGeneratedConversion('thumb')
                     ? $item->getUrl('thumb')
                     : $item->getUrl(),
+                // Alt teks (baseline PRD §A.2: satu alt + override per bahasa).
+                'alt' => (string) ($item->getCustomProperty('alt') ?? ''),
+                'alt_overrides' => (array) ($item->getCustomProperty('alt_overrides') ?? []),
             ]);
 
         return Inertia::render('admin/media/index', [
             'media' => $media,
+            // Bahasa aktif untuk editor override alt per bahasa.
+            'locales' => Language::active()
+                ->get(['code', 'name'])
+                ->map(fn (Language $lang): array => [
+                    'code' => $lang->code,
+                    'name' => $lang->name,
+                ])
+                ->all(),
         ]);
     }
 
@@ -73,6 +85,7 @@ class MediaController extends Controller
                 'max:100',
                 Rule::in(self::COLLECTION_ALLOWLIST[$request->input('model_type')] ?? []),
             ],
+            'alt' => ['nullable', 'string', 'max:255'],
         ]);
 
         $model = $this->resolveModel($validated['model_type'], (int) $validated['model_id']);
@@ -83,9 +96,43 @@ class MediaController extends Controller
 
         $media = $model
             ->addMedia($file)
+            ->withCustomProperties(['alt' => $validated['alt'] ?? ''])
             ->toMediaCollection($validated['collection']);
 
         return back()->with('success', 'Media uploaded: '.$media->file_name);
+    }
+
+    /**
+     * Perbarui alt-text media: satu alt default + override opsional per bahasa
+     * (baseline ramping PRD Lampiran A.2). Otorisasi via model induk.
+     */
+    public function update(Request $request, Media $media): RedirectResponse
+    {
+        $validated = $request->validate([
+            'alt' => ['nullable', 'string', 'max:255'],
+            'alt_overrides' => ['nullable', 'array'],
+            'alt_overrides.*' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        $parent = $media->model;
+
+        if ($parent instanceof Post || $parent instanceof Page || $parent instanceof Testimonial) {
+            $this->authorize('update', $parent);
+        } elseif ($parent !== null) {
+            abort(403);
+        }
+
+        // Buang override kosong agar fallback ke alt default.
+        $overrides = array_filter(
+            $validated['alt_overrides'] ?? [],
+            fn (?string $value): bool => $value !== null && $value !== '',
+        );
+
+        $media->setCustomProperty('alt', $validated['alt'] ?? '');
+        $media->setCustomProperty('alt_overrides', $overrides);
+        $media->save();
+
+        return back()->with('success', 'Alt text diperbarui.');
     }
 
     /**

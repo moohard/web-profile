@@ -31,13 +31,15 @@ it('Login dengan admin → redirect ke /admin', function () {
     // Hindari migrate:fresh di SQLite :memory: (VACUUM error); seed saja
     $this->seed();
 
-    $admin = User::where('email', env('ADMIN_EMAIL', 'admin@papenajam.test'))->first();
+    // Baca dari config admin (sumber yang sama dengan AdminUserSeeder) agar
+    // konsisten walau ADMIN_PASSWORD di .env kosong (config sudah pakai `?:`).
+    $admin = User::where('email', config('admin.email'))->first();
 
     expect($admin)->not->toBeNull();
 
     $response = $this->post('/login', [
         'email' => $admin->email,
-        'password' => env('ADMIN_PASSWORD', 'password'),
+        'password' => config('admin.password'),
     ]);
 
     $response->assertRedirect('/admin');

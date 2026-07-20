@@ -8,8 +8,8 @@
 
 **Tech Stack:** Laravel 13 (PHP 8.4) · Inertia.js v3 + React 19 + TypeScript · Tailwind v4 + shadcn/ui (Radix) + Magic UI · Wayfinder · PostgreSQL (JSONB) · Spatie (permission, medialibrary, sitemap, settings) · Laravel AI SDK · stevebauman/purify · Pest v4 · Pint · Larastan v3
 
-**Spec:** `docs/superpowers/specs/2026-07-19-cms-foundation-design-revisi.md` (revisi 1)
-**PRD:** `docs/PRD-Website-Company-Profile-CMS-v1.1.md`
+**Spec:** `docs/superpowers/specs/2026-07-19-cms-foundation-design.md`
+**PRD:** `docs/PRD-Website-Company-Profile-CMS-v1.0.md`
 
 ## Global Constraints
 

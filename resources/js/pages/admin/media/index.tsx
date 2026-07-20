@@ -1,10 +1,18 @@
 import { Head, router, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { dashboard } from '@/routes/admin';
-import { destroy, index as mediaIndex, store } from '@/routes/admin/media';
+import {
+    destroy,
+    index as mediaIndex,
+    store,
+    update,
+} from '@/routes/admin/media';
+
+type Locale = { code: string; name: string };
 
 type MediaItem = {
     id: number;
@@ -16,6 +24,8 @@ type MediaItem = {
     model_id: number;
     url: string;
     thumb_url: string;
+    alt: string;
+    alt_overrides: Record<string, string>;
 };
 
 type MediaPage = {
@@ -30,14 +40,129 @@ type UploadForm = {
     model_type: 'Post' | 'Page' | 'Testimonial';
     model_id: number;
     collection: string;
+    alt: string;
 };
 
-export default function MediaIndex({ media }: { media: MediaPage }) {
+type AltForm = {
+    alt: string;
+    alt_overrides: Record<string, string>;
+};
+
+/** Kartu media dengan editor alt-text (satu alt default + override per bahasa). */
+function MediaCard({ item, locales }: { item: MediaItem; locales: Locale[] }) {
+    const altForm = useForm<AltForm>({
+        alt: item.alt ?? '',
+        alt_overrides: item.alt_overrides ?? {},
+    });
+    const [showOverrides, setShowOverrides] = useState(false);
+
+    function saveAlt(e: React.FormEvent) {
+        e.preventDefault();
+        altForm.patch(update.url(item.id), {
+            preserveScroll: true,
+            preserveState: true,
+        });
+    }
+
+    function deleteMedia() {
+        if (!confirm('Hapus media ini?')) {
+            return;
+        }
+
+        router.delete(destroy.url(item.id), { preserveScroll: true });
+    }
+
+    return (
+        <div className="space-y-2 rounded-lg border p-2">
+            <img
+                src={item.thumb_url || item.url}
+                alt={item.alt || item.file_name}
+                className="aspect-square w-full rounded object-cover"
+                loading="lazy"
+            />
+            <p className="truncate text-xs" title={item.file_name}>
+                {item.file_name}
+            </p>
+            <p className="truncate text-[10px] text-muted-foreground">
+                {item.model_type}#{item.model_id} · {item.collection_name}
+            </p>
+
+            <form onSubmit={saveAlt} className="space-y-1">
+                <Label htmlFor={`alt-${item.id}`} className="text-[10px]">
+                    Alt text
+                </Label>
+                <Input
+                    id={`alt-${item.id}`}
+                    value={altForm.data.alt}
+                    onChange={(e) => altForm.setData('alt', e.target.value)}
+                    placeholder="Teks alternatif"
+                    className="h-8 text-xs"
+                />
+                <InputError message={altForm.errors.alt} />
+
+                {locales.length > 1 && (
+                    <button
+                        type="button"
+                        className="text-[10px] text-muted-foreground underline"
+                        onClick={() => setShowOverrides((v) => !v)}
+                    >
+                        {showOverrides ? 'Sembunyikan' : 'Override per bahasa'}
+                    </button>
+                )}
+
+                {showOverrides &&
+                    locales.map((l) => (
+                        <Input
+                            key={l.code}
+                            value={altForm.data.alt_overrides[l.code] ?? ''}
+                            onChange={(e) =>
+                                altForm.setData('alt_overrides', {
+                                    ...altForm.data.alt_overrides,
+                                    [l.code]: e.target.value,
+                                })
+                            }
+                            placeholder={`Alt (${l.name})`}
+                            className="h-8 text-xs"
+                        />
+                    ))}
+
+                <Button
+                    type="submit"
+                    size="sm"
+                    variant="outline"
+                    className="w-full"
+                    disabled={altForm.processing}
+                >
+                    {altForm.processing ? 'Menyimpan…' : 'Simpan alt'}
+                </Button>
+            </form>
+
+            <Button
+                type="button"
+                variant="destructive"
+                size="sm"
+                className="w-full"
+                onClick={deleteMedia}
+            >
+                Hapus
+            </Button>
+        </div>
+    );
+}
+
+export default function MediaIndex({
+    media,
+    locales,
+}: {
+    media: MediaPage;
+    locales: Locale[];
+}) {
     const form = useForm<UploadForm>({
         file: null,
         model_type: 'Post',
         model_id: 1,
         collection: 'featured_image',
+        alt: '',
     });
 
     function submit(e: React.FormEvent) {
@@ -45,16 +170,8 @@ export default function MediaIndex({ media }: { media: MediaPage }) {
         form.post(store.url(), {
             preserveScroll: true,
             forceFormData: true,
-            onSuccess: () => form.reset('file'),
+            onSuccess: () => form.reset('file', 'alt'),
         });
-    }
-
-    function deleteMedia(id: number) {
-        if (!confirm('Hapus media ini?')) {
-            return;
-        }
-
-        router.delete(destroy.url(id), { preserveScroll: true });
     }
 
     return (
@@ -73,7 +190,7 @@ export default function MediaIndex({ media }: { media: MediaPage }) {
                         <Input
                             id="media-file"
                             type="file"
-                            accept=".jpg,.jpeg,.png,.webp,.svg,image/*"
+                            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
                             onChange={(e) =>
                                 form.setData(
                                     'file',
@@ -136,6 +253,20 @@ export default function MediaIndex({ media }: { media: MediaPage }) {
                         <InputError message={form.errors.collection} />
                     </div>
 
+                    <div className="space-y-1">
+                        <Label htmlFor="media-alt">Alt text</Label>
+                        <Input
+                            id="media-alt"
+                            value={form.data.alt}
+                            onChange={(e) =>
+                                form.setData('alt', e.target.value)
+                            }
+                            placeholder="Teks alternatif"
+                            className="w-56"
+                        />
+                        <InputError message={form.errors.alt} />
+                    </div>
+
                     <Button
                         type="submit"
                         disabled={form.processing || !form.data.file}
@@ -161,36 +292,11 @@ export default function MediaIndex({ media }: { media: MediaPage }) {
                 ) : (
                     <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-6">
                         {media.data.map((item) => (
-                            <div
+                            <MediaCard
                                 key={item.id}
-                                className="space-y-2 rounded-lg border p-2"
-                            >
-                                <img
-                                    src={item.thumb_url || item.url}
-                                    alt={item.file_name}
-                                    className="aspect-square w-full rounded object-cover"
-                                    loading="lazy"
-                                />
-                                <p
-                                    className="truncate text-xs"
-                                    title={item.file_name}
-                                >
-                                    {item.file_name}
-                                </p>
-                                <p className="truncate text-[10px] text-muted-foreground">
-                                    {item.model_type}#{item.model_id} ·{' '}
-                                    {item.collection_name}
-                                </p>
-                                <Button
-                                    type="button"
-                                    variant="destructive"
-                                    size="sm"
-                                    className="w-full"
-                                    onClick={() => deleteMedia(item.id)}
-                                >
-                                    Hapus
-                                </Button>
-                            </div>
+                                item={item}
+                                locales={locales}
+                            />
                         ))}
                     </div>
                 )}

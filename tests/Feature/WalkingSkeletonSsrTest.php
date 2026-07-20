@@ -8,24 +8,29 @@ beforeEach(function () {
     Language::flushCache();
 });
 
-it('GET /berita/selamat-datang SSR: HTML mengandung judul + hreflang ID + EN', function () {
-    // Walking skeleton SSR membutuhkan Node SSR server (`php artisan inertia:start-ssr`).
-    if (! app(HttpGateway::class)->isHealthy()) {
-        $this->markTestSkipped('Inertia SSR server tidak berjalan — jalankan: php artisan inertia:start-ssr');
-    }
-
-    $response = $this->get('/berita/selamat-datang');
-    $html = $response->getContent();
-
-    $response->assertOk()
+it('GET /berita/selamat-datang: props SEO (title/canonical/hreflang ID+EN) selalu terkirim', function () {
+    // Assertion prop Inertia TIDAK butuh Node SSR — mengecek payload data-page,
+    // jadi cakupan SEO ini berjalan di setiap `php artisan test` (bukan false-green).
+    $this->get('/berita/selamat-datang')
+        ->assertOk()
         ->assertInertia(fn ($page) => $page
             ->component('public/post-show')
             ->has('seo.title')
             ->has('seo.canonical')
             ->has('seo.hreflang.id')
             ->has('seo.hreflang.en')
+            ->has('seo.hreflang.x-default')
             ->where('seo.ogType', 'article')
         );
+});
+
+it('GET /berita/selamat-datang SSR: HTML mengandung judul + hreflang ID + EN', function () {
+    // Hanya assertion markup HTML ter-render yang butuh Node SSR aktif.
+    if (! app(HttpGateway::class)->isHealthy()) {
+        $this->markTestSkipped('Inertia SSR server tidak berjalan — jalankan: php artisan inertia:start-ssr');
+    }
+
+    $html = $this->get('/berita/selamat-datang')->getContent();
 
     expect($html)
         ->toContain('Selamat Datang di Papenajam')

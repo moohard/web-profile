@@ -16,10 +16,11 @@ export type SeoProps = {
  * Detail lanjutan (JSON-LD, og lengkap) di Fase 6.
  */
 export function MetaHead(props: SeoProps) {
+    // Map locale → URL sudah termasuk entri khusus `x-default` yang di-resolve
+    // di server dari bahasa default (bukan sekadar urutan array).
     const hreflangEntries = props.hreflang
         ? Object.entries(props.hreflang)
         : [];
-    const xDefault = hreflangEntries[0]?.[1];
 
     return (
         <Head>
@@ -47,14 +48,6 @@ export function MetaHead(props: SeoProps) {
                     href={url}
                 />
             ))}
-            {xDefault && (
-                <link
-                    head-key="hreflang-x-default"
-                    rel="alternate"
-                    hrefLang="x-default"
-                    href={xDefault}
-                />
-            )}
             {props.ogTitle && (
                 <meta
                     head-key="og:title"

@@ -23,6 +23,7 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes/admin';
+import posts from '@/routes/admin/posts';
 import type { NavItem } from '@/types';
 
 type SharedContentType = {
@@ -40,7 +41,7 @@ function buildAdminNavItems(
 ): AdminNavItem[] {
     const dynamicContentItems: AdminNavItem[] = contentTypes.map((ct) => ({
         label: ct.name,
-        href: `/admin/posts?type=${ct.slug}`,
+        href: posts.index.url({ query: { type: ct.slug } }),
         icon: FileText,
         group: 'content' as const,
     }));
@@ -98,7 +99,7 @@ export function AppSidebar() {
                 </SidebarMenu>
             </SidebarHeader>
 
-            <SidebarContent>
+            <SidebarContent role="navigation" aria-label="Navigasi admin">
                 {groupedItems.map(({ group, label, items }) => (
                     <NavMain key={group} items={items} label={label} />
                 ))}

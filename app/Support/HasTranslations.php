@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Models\Language;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\Relation;
 
 /**
  * Trait untuk model host yang punya tabel *_translations.
@@ -27,21 +25,5 @@ trait HasTranslations
 
         return $this->translations->firstWhere('language_id', Language::idFor($locale))
             ?? $this->translations->firstWhere('language_id', Language::defaultModel()->id);
-    }
-
-    /**
-     * Eager-load translation untuk locale aktif (dan fallback default).
-     *
-     * @param  Builder<static>  $query
-     * @return Builder<static>
-     */
-    public function scopeWithTranslation(Builder $query): Builder
-    {
-        return $query->with(['translations' => function (Relation $q) {
-            $q->whereIn('language_id', array_unique([
-                Language::idFor(app()->getLocale()),
-                Language::defaultModel()->id,
-            ]));
-        }]);
     }
 }

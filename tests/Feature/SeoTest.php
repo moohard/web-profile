@@ -32,6 +32,21 @@ it('SeoProps::for membangun array meta dan OG', function () {
     ]);
 });
 
+it('SeoProps::withXDefault menunjuk bahasa default, bukan entri pertama array', function () {
+    // 'en' sengaja ditaruh pertama untuk membuktikan x-default TIDAK memakai urutan array.
+    $hreflang = SeoProps::withXDefault([
+        'en' => 'https://example.test/en/profile',
+        'id' => 'https://example.test/profil',
+    ]);
+
+    expect($hreflang)->toHaveKey('x-default')
+        ->and($hreflang['x-default'])->toBe('https://example.test/profil');
+});
+
+it('SeoProps::withXDefault mengembalikan map kosong apa adanya', function () {
+    expect(SeoProps::withXDefault([]))->toBe([]);
+});
+
 it('Home mengandung JSON-LD Organization dan WebSite', function () {
     $response = $this->get('/');
 
