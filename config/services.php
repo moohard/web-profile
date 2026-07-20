@@ -36,10 +36,19 @@ return [
     ],
 
     // BytePlus Ark — provider terjemahan AI (model seed-translation, Responses API).
+    // Hanya BOOTSTRAP default; sumber kebenaran = tabel ai_configs (Pengaturan → Konfigurasi AI).
     'ark' => [
         'key' => env('ARK_API_KEY'),
         'base_url' => env('ARK_BASE_URL', 'https://ark.ap-southeast.bytepluses.com/api/v3'),
         'translation_model' => env('ARK_TRANSLATION_MODEL', 'seed-translation-250915'),
+    ],
+
+    // MegaNova — provider chat OpenAI-compatible untuk Koreksi Konten (CONTENT_REFINEMENT).
+    // Bootstrap default; admin dapat override via Pengaturan → Konfigurasi AI.
+    'meganova' => [
+        'key' => env('MEGANOVA_API_KEY'),
+        'base_url' => env('MEGANOVA_BASE_URL', 'https://api.meganova.ai/v1'),
+        'chat_model' => env('MEGANOVA_CHAT_MODEL', 'meganova-ai/manta-flash-1.0'),
     ],
 
 ];

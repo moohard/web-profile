@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Admin\AiConfigController;
 use App\Http\Controllers\Admin\AiController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MediaController;
@@ -20,7 +21,12 @@ Route::get('/testimonials', fn () => Inertia::render('admin/placeholder', ['sect
 Route::get('/ratings', fn () => Inertia::render('admin/placeholder', ['section' => 'Penilaian']))->name('ratings.index');
 Route::get('/users', fn () => Inertia::render('admin/placeholder', ['section' => 'Pengguna']))->name('users.index')->middleware('permission:admin.access-system');
 Route::get('/settings', fn () => Inertia::render('admin/placeholder', ['section' => 'Pengaturan']))->name('settings.index')->middleware('permission:admin.access-system');
-Route::get('/settings/ai', fn () => Inertia::render('admin/placeholder', ['section' => 'Konfigurasi AI']))->name('settings.ai')->middleware('permission:admin.access-system');
+Route::get('/settings/ai', [AiConfigController::class, 'index'])
+    ->middleware('permission:admin.access-system')
+    ->name('settings.ai');
+Route::put('/settings/ai/{task}', [AiConfigController::class, 'update'])
+    ->middleware('permission:admin.access-system')
+    ->name('settings.ai.update');
 Route::get('/settings/languages', fn () => Inertia::render('admin/placeholder', ['section' => 'Bahasa']))->name('settings.languages')->middleware('permission:admin.access-system');
 Route::get('/content-types', fn () => Inertia::render('admin/placeholder', ['section' => 'Jenis Konten']))->name('content-types.index');
 Route::get('/categories', fn () => Inertia::render('admin/placeholder', ['section' => 'Kategori']))->name('categories.index');

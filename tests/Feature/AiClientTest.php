@@ -37,9 +37,18 @@ it('TranslationTask mendelegasikan ke ArkTranslationClient', function () {
     expect($task->translate('halo dunia', 'id', 'en'))->toBe('hello world');
 });
 
-it('ContentRefinementTask::suggest throw NotImplementedException', function () {
-    app(ContentRefinementTask::class)->suggest('text', 'style');
-})->throws(RuntimeException::class);
+it('ContentRefinementTask::suggest mendelegasikan ke AiClient chat (task ContentRefinement)', function () {
+    $mock = Mockery::mock(AiClient::class);
+    $mock->shouldReceive('task')->with(AiTask::ContentRefinement)->andReturnSelf();
+    $mock->shouldReceive('chat')
+        ->once()
+        ->with(Mockery::on(fn ($p) => str_contains($p, 'teks contoh') && str_contains($p, 'formal')))
+        ->andReturn('teks yang diperbaiki');
+
+    $task = new ContentRefinementTask($mock);
+
+    expect($task->suggest('teks contoh', 'formal'))->toBe('teks yang diperbaiki');
+});
 
 it('MarkupConformTask::suggest throw NotImplementedException', function () {
     app(MarkupConformTask::class)->suggest('<html>', 'ref');

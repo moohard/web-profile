@@ -11,26 +11,43 @@ use Illuminate\Database\Seeder;
 class AiConfigSeeder extends Seeder
 {
     /**
-     * Konfigurasi provider AI per-tugas. TRANSLATION memakai BytePlus Ark
-     * seed-translation (Responses API + translation_options). Diaktifkan hanya
-     * bila ARK_API_KEY tersedia agar tak ada config "enabled tanpa key".
+     * Bootstrap konfigurasi provider AI per-tugas dari env — HANYA sebagai nilai
+     * awal. Sumber kebenaran adalah tabel ai_configs yang dikelola admin lewat
+     * Pengaturan → Konfigurasi AI. Memakai firstOrCreate agar TIDAK menimpa
+     * konfigurasi yang sudah diedit admin saat re-seed.
+     *
+     * - TRANSLATION       → BytePlus Ark seed-translation (Responses API).
+     * - CONTENT_REFINEMENT → MegaNova (chat OpenAI-compatible).
      */
     public function run(): void
     {
-        $arkKey = (string) config('services.ark.key', '');
+        $this->bootstrapTask(
+            AiTask::Translation,
+            (string) config('services.ark.key', ''),
+            (string) config('services.ark.base_url', ''),
+            (string) config('services.ark.translation_model', ''),
+        );
 
-        // Tanpa API key tidak ada gunanya menyeed config (dan menghindari
-        // "enabled tanpa key"). Admin isi via Pengaturan bila key belum ada.
-        if ($arkKey === '') {
+        $this->bootstrapTask(
+            AiTask::ContentRefinement,
+            (string) config('services.meganova.key', ''),
+            (string) config('services.meganova.base_url', ''),
+            (string) config('services.meganova.chat_model', ''),
+        );
+    }
+
+    private function bootstrapTask(AiTask $task, string $key, string $baseUrl, string $model): void
+    {
+        if ($key === '') {
             return;
         }
 
-        AiConfig::updateOrCreate(
-            ['task' => AiTask::Translation],
+        AiConfig::firstOrCreate(
+            ['task' => $task],
             [
-                'base_url' => (string) config('services.ark.base_url'),
-                'model' => (string) config('services.ark.translation_model'),
-                'api_key' => $arkKey,
+                'base_url' => $baseUrl,
+                'model' => $model,
+                'api_key' => $key,
                 'system_prompt' => null,
                 'enabled' => true,
             ],
