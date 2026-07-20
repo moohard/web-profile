@@ -12,6 +12,12 @@ use RuntimeException;
 
 class AiClient
 {
+    /**
+     * Driver openai-compatible → endpoint `chat/completions` (bukan `responses`
+     * milik driver `openai`), agar cocok dengan provider seperti MegaNova.
+     */
+    private const PROVIDER = 'openai-compatible';
+
     private ?AiConfig $config = null;
 
     /**
@@ -36,7 +42,7 @@ class AiClient
 
         $this->applyRuntimeConfig();
 
-        $provider = Ai::textProvider('openai');
+        $provider = Ai::textProvider(self::PROVIDER);
         $model = $this->config->model ?? 'gpt-4o-mini';
         $instructions = $this->config->system_prompt ?? '';
 
@@ -56,17 +62,20 @@ class AiClient
     }
 
     /**
-     * Override key + URL OpenAI runtime dari AiConfig, lalu purge cache provider.
+     * Override key + URL runtime dari AiConfig ke provider openai-compatible,
+     * lalu purge cache provider.
      */
     private function applyRuntimeConfig(): void
     {
+        $provider = self::PROVIDER;
+
         config([
-            'ai.providers.openai.key' => $this->config->api_key ?? config('ai.providers.openai.key'),
-            'ai.providers.openai.url' => $this->config->base_url ?? config('ai.providers.openai.url'),
-            'ai.default' => 'openai',
+            "ai.providers.{$provider}.key" => $this->config->api_key ?? config("ai.providers.{$provider}.key"),
+            "ai.providers.{$provider}.url" => $this->config->base_url ?? config("ai.providers.{$provider}.url"),
+            'ai.default' => $provider,
         ]);
 
         // Instance provider di-cache; purge agar config baru terbaca.
-        Ai::forgetInstance('openai');
+        Ai::forgetInstance($provider);
     }
 }

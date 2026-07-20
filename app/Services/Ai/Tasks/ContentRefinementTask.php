@@ -22,9 +22,10 @@ class ContentRefinementTask
             : '';
 
         $prompt = $style.
-            'Perbaiki dan sempurnakan teks berikut agar lebih jelas, rapi, dan enak dibaca. '.
-            'Pertahankan makna dan semua tag HTML apa adanya, hanya sempurnakan teksnya. '.
-            "Output HANYA teks hasil perbaikan, tanpa penjelasan.\n\n{$text}";
+            'Perbaiki tata bahasa, ejaan, tanda baca, dan gaya penulisan teks berikut. '.
+            'JANGAN menambah informasi baru, JANGAN mengarang, dan JANGAN mengubah makna. '.
+            'Pertahankan panjang yang wajar dan semua tag HTML apa adanya. '.
+            "Output HANYA teks hasil perbaikan, tanpa penjelasan atau judul tambahan.\n\n{$text}";
 
         return $this->client->task(AiTask::ContentRefinement)->chat($prompt);
     }
