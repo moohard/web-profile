@@ -177,17 +177,17 @@ Dari sederhana → kompleks, tiap task TDD. Fase K1–K2 memberi taksonomi (kate
 ## K6 — Otorisasi, Navigasi, Verifikasi
 
 ### Task K6.1: Sidebar & Wayfinder
-- [ ] `resources/js/components/admin/sidebar-nav-config.ts` sudah pakai Wayfinder `.index.url()` — pastikan entri Kategori/Tag/Jenis konten/Posts mengarah ke rute resource baru (bukan placeholder). Entri dinamis per content type di `app-sidebar.tsx` sudah `posts.index.url({query:{type}})` — verifikasi masih valid.
-- [ ] Hapus rute placeholder yang sudah digantikan resource di `routes/admin.php`.
+- [x] `resources/js/components/admin/sidebar-nav-config.ts` sudah pakai Wayfinder `.index.url()` — pastikan entri Kategori/Tag/Jenis konten/Posts mengarah ke rute resource baru (bukan placeholder). Entri dinamis per content type di `app-sidebar.tsx` sudah `posts.index.url({query:{type}})` — verifikasi masih valid.
+- [x] Hapus rute placeholder yang sudah digantikan resource di `routes/admin.php`.
 
 ### Task K6.2: Permission review
-- [ ] Pastikan `content-types.*` mencakup Kategori/Tag/Jenis (sudah begitu di sidebar). Jika ingin permission granular terpisah (`categories.*`,`tags.*`), tambah di `RolePermissionSeeder` + `migrate:fresh --seed`. **Default: reuse `content-types.*`** (minim perubahan).
-- [ ] Editor sudah punya `posts.*`; Author `posts.deleteOwn` — verifikasi `PostPolicy` dipakai di semua aksi.
+- [x] Pastikan `content-types.*` mencakup Kategori/Tag/Jenis (sudah begitu di sidebar). Jika ingin permission granular terpisah (`categories.*`,`tags.*`), tambah di `RolePermissionSeeder` + `migrate:fresh --seed`. **Default: reuse `content-types.*`** (minim perubahan).
+- [x] Editor sudah punya `posts.*`; Author `posts.deleteOwn` — verifikasi `PostPolicy` dipakai di semua aksi.
 
 ### Task K6.3: Verifikasi akhir subsistem
-- [ ] `php artisan test --compact` — seluruh suite hijau (termasuk tes baru).
-- [ ] `vendor/bin/pint --format agent`, `phpstan analyse`, `npm run types:check`, `npm run lint:check`, `npm run build:ssr`.
-- [ ] Smoke manual: buat ContentType baru → muncul di sidebar + arsip publik; buat Post 2 bahasa (draft→publish) → tampil di `/{type}/{slug}` & `/en/...` dengan hreflang; Terjemahkan/Koreksi AI memunculkan saran; Author tak bisa mengedit post orang lain.
+- [x] `php artisan test --compact` — seluruh suite hijau (termasuk tes baru).
+- [x] `vendor/bin/pint --format agent`, `phpstan analyse`, `npm run types:check`, `npm run lint:check`, `npm run build:ssr`.
+- [x] Smoke manual: buat ContentType baru → muncul di sidebar + arsip publik; buat Post 2 bahasa (draft→publish) → tampil di `/{type}/{slug}` & `/en/...` dengan hreflang; Terjemahkan/Koreksi AI memunculkan saran; Author tak bisa mengedit post orang lain.
 
 ---
 
