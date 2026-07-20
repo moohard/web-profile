@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ContentTypeController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Admin\TagController;
 use Illuminate\Support\Facades\Route;
@@ -24,8 +25,16 @@ Route::prefix('posts')->name('posts.')->group(function (): void {
     Route::delete('/{post}', [PostController::class, 'destroy'])->name('destroy');
 });
 
+Route::prefix('pages')->name('pages.')->group(function (): void {
+    Route::get('/', [PageController::class, 'index'])->name('index');
+    Route::get('/create', [PageController::class, 'create'])->name('create');
+    Route::post('/', [PageController::class, 'store'])->name('store');
+    Route::get('/{page}/edit', [PageController::class, 'edit'])->name('edit');
+    Route::put('/{page}', [PageController::class, 'update'])->name('update');
+    Route::delete('/{page}', [PageController::class, 'destroy'])->name('destroy');
+});
+
 // Placeholder routes — diisi di fase berikutnya
-Route::get('/pages', fn () => Inertia::render('admin/placeholder', ['section' => 'Halaman']))->name('pages.index');
 Route::get('/menus', fn () => Inertia::render('admin/placeholder', ['section' => 'Menu']))->name('menus.index')->middleware('permission:admin.access-appearance');
 Route::get('/widgets', fn () => Inertia::render('admin/placeholder', ['section' => 'Widget']))->name('widgets.index')->middleware('permission:admin.access-appearance');
 Route::get('/contact-messages', fn () => Inertia::render('admin/placeholder', ['section' => 'Pesan Kontak']))->name('contact-messages.index');

@@ -28,6 +28,14 @@ type LanguageTabsProps = {
      * hanya chrome tab (tombol + state aktif) yang tetap dipakai bersama.
      */
     renderPanel?: (lang: LanguageOption) => ReactNode;
+    /**
+     * Tab bahasa aktif (dikontrol dari parent) — dipakai saat panel lain di
+     * luar komponen ini (mis. kolom pengaturan editor Halaman) perlu
+     * mengikuti bahasa yang sama. Bila tidak disediakan, state aktif
+     * dikelola secara lokal seperti biasa.
+     */
+    active?: number;
+    onActiveChange?: (languageId: number) => void;
 };
 
 /**
@@ -46,9 +54,15 @@ export default function LanguageTabs({
     descriptionErrors,
     onDescriptionChange,
     renderPanel,
+    active: activeProp,
+    onActiveChange,
 }: LanguageTabsProps) {
     const withDescription = onDescriptionChange !== undefined;
-    const [active, setActive] = useState<number>(languages[0]?.id ?? 0);
+    const [internalActive, setInternalActive] = useState<number>(
+        languages[0]?.id ?? 0,
+    );
+    const active = activeProp ?? internalActive;
+    const setActive = onActiveChange ?? setInternalActive;
 
     if (languages.length === 0) {
         return (
