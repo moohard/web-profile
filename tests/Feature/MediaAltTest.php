@@ -31,18 +31,18 @@ it('POST /admin/media menyimpan alt sebagai custom property', function () {
         'file' => UploadedFile::fake()->image('a.jpg', 800, 600),
         'model_type' => 'Post',
         'model_id' => $post->id,
-        'collection' => 'featured_image',
+        'collection' => 'featured',
         'alt' => 'Foto sampul berita',
     ])->assertRedirect();
 
-    $media = $post->fresh()->getFirstMedia('featured_image');
+    $media = $post->fresh()->getFirstMedia('featured');
     expect($media->getCustomProperty('alt'))->toBe('Foto sampul berita');
 });
 
 it('PATCH /admin/media/{media} memperbarui alt + override per bahasa dan membuang override kosong', function () {
     $post = altPost();
     $media = $post->addMedia(UploadedFile::fake()->image('x.jpg'))
-        ->toMediaCollection('featured_image');
+        ->toMediaCollection('featured');
 
     $this->actingAs(altAdmin())->patch("/admin/media/{$media->id}", [
         'alt' => 'Alt default',
@@ -59,7 +59,7 @@ it('GET /admin/media mengembalikan alt item + daftar locale', function () {
     $post = altPost();
     $post->addMedia(UploadedFile::fake()->image('x.jpg'))
         ->withCustomProperties(['alt' => 'Halo dunia'])
-        ->toMediaCollection('featured_image');
+        ->toMediaCollection('featured');
 
     $this->actingAs(altAdmin())
         ->get('/admin/media')
@@ -75,7 +75,7 @@ it('User tanpa permission media.update ditolak PATCH alt', function () {
     $user = User::factory()->create()->givePermissionTo('access-admin');
     $post = altPost();
     $media = $post->addMedia(UploadedFile::fake()->image('x.jpg'))
-        ->toMediaCollection('featured_image');
+        ->toMediaCollection('featured');
 
     $this->actingAs($user)
         ->patch("/admin/media/{$media->id}", ['alt' => 'x'])

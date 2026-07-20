@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
+use App\Models\Page;
 use App\Models\PageTranslation;
 use App\Models\WidgetPlacementTarget;
 use App\Services\Html\Sanitizer;
@@ -32,6 +33,10 @@ class PageController extends Controller
 
         $translation->load('page');
         $page = $translation->page;
+
+        // Halaman induk sudah di-trash (SoftDeletes): relasi null akibat global scope → 404,
+        // bukan error 500 saat mengakses $page->id di bawah.
+        abort_unless($page instanceof Page, 404);
 
         // Bridging region per-halaman: widget (scoped ke halaman ini) + hero + sidebar on/off.
         $props = PublicLayoutProps::base();

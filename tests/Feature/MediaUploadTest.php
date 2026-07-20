@@ -35,11 +35,11 @@ it('POST /admin/media upload sukses untuk Post', function () {
         'file' => UploadedFile::fake()->image('a.jpg', 800, 600),
         'model_type' => 'Post',
         'model_id' => $post->id,
-        'collection' => 'featured_image',
+        'collection' => 'featured',
     ]);
 
     $response->assertRedirect();
-    expect($post->fresh()->getMedia('featured_image'))->toHaveCount(1);
+    expect($post->fresh()->getMedia('featured'))->toHaveCount(1);
 });
 
 it('POST /admin/media menolak MIME tidak valid', function () {
@@ -51,7 +51,7 @@ it('POST /admin/media menolak MIME tidak valid', function () {
         'file' => UploadedFile::fake()->create('a.txt', 100, 'text/plain'),
         'model_type' => 'Post',
         'model_id' => $post->id,
-        'collection' => 'featured_image',
+        'collection' => 'featured',
     ]);
 
     $response->assertSessionHasErrors('file');
@@ -85,11 +85,11 @@ it('POST /admin/media menolak SVG untuk mencegah XSS berbasis file', function ()
         ),
         'model_type' => 'Post',
         'model_id' => $post->id,
-        'collection' => 'featured_image',
+        'collection' => 'featured',
     ]);
 
     $response->assertSessionHasErrors('file');
-    expect($post->fresh()->getMedia('featured_image'))->toHaveCount(0);
+    expect($post->fresh()->getMedia('featured'))->toHaveCount(0);
 });
 
 it('User tanpa media.create mendapat 403 pada upload', function () {
@@ -103,7 +103,7 @@ it('User tanpa media.create mendapat 403 pada upload', function () {
         'file' => UploadedFile::fake()->image('a.jpg', 800, 600),
         'model_type' => 'Post',
         'model_id' => $post->id,
-        'collection' => 'featured_image',
+        'collection' => 'featured',
     ])->assertForbidden();
 });
 
@@ -117,7 +117,7 @@ it('Author ditolak upload media ke post yang bukan miliknya', function () {
         'file' => UploadedFile::fake()->image('a.jpg', 800, 600),
         'model_type' => 'Post',
         'model_id' => $post->id,
-        'collection' => 'featured_image',
+        'collection' => 'featured',
     ])->assertForbidden();
 });
 
@@ -130,11 +130,11 @@ it('Author boleh upload media ke post miliknya sendiri', function () {
         'file' => UploadedFile::fake()->image('a.jpg', 800, 600),
         'model_type' => 'Post',
         'model_id' => $post->id,
-        'collection' => 'featured_image',
+        'collection' => 'featured',
     ]);
 
     $response->assertRedirect();
-    expect($post->fresh()->getMedia('featured_image'))->toHaveCount(1);
+    expect($post->fresh()->getMedia('featured'))->toHaveCount(1);
 });
 
 it('DELETE /admin/media/{media} menghapus', function () {
@@ -142,7 +142,7 @@ it('DELETE /admin/media/{media} menghapus', function () {
     $type = ContentType::where('slug', 'berita')->first();
     $post = Post::factory()->create(['type_id' => $type->id]);
     $media = $post->addMedia(UploadedFile::fake()->image('x.jpg'))
-        ->toMediaCollection('featured_image');
+        ->toMediaCollection('featured');
 
     $this->actingAs($admin)
         ->delete("/admin/media/{$media->id}")
@@ -156,7 +156,7 @@ it('Non-admin tidak bisa POST /admin/media', function () {
         'file' => UploadedFile::fake()->image('a.jpg'),
         'model_type' => 'Post',
         'model_id' => 1,
-        'collection' => 'featured_image',
+        'collection' => 'featured',
     ]);
 
     $response->assertRedirect('/login');

@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -23,6 +25,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property bool $hero_enabled
  * @property ?string $hero_image
  * @property bool $sidebar_enabled
+ * @property ?Carbon $deleted_at
  */
 #[UsePolicy(PagePolicy::class)]
 class Page extends Model implements HasMedia
@@ -35,6 +38,7 @@ class Page extends Model implements HasMedia
     use HasFactory;
 
     use HasTranslations;
+    use SoftDeletes;
 
     protected $fillable = [
         'mode',

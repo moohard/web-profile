@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PageRequest;
 use App\Models\Language;
@@ -62,6 +63,28 @@ class PageController extends Controller
             'filters' => [
                 'status' => $statusFilter,
             ],
+        ]);
+    }
+
+    /**
+     * Daftar halaman yang sudah di-trash (soft deleted).
+     */
+    public function trash(Request $request): Response
+    {
+        $this->authorize('viewAny', Page::class);
+
+        $currentLanguageId = Language::current()->id;
+
+        $pages = Page::onlyTrashed()
+            ->with('translations')
+            ->latest('deleted_at')
+            ->paginate(20)
+            ->withQueryString()
+            ->through(fn (Page $page): array => $this->toSummary($page, $currentLanguageId));
+
+        return Inertia::render('admin/pages/trash', [
+            'pages' => $pages,
+            'canManageTrash' => $request->user()?->hasAnyRole([UserRole::Admin->value, UserRole::Editor->value]) ?? false,
         ]);
     }
 
@@ -146,7 +169,7 @@ class PageController extends Controller
     }
 
     /**
-     * Hapus halaman.
+     * Hapus halaman. Soft delete (trait SoftDeletes): translations tetap ada, muncul di trash.
      */
     public function destroy(Page $page): RedirectResponse
     {
@@ -157,6 +180,34 @@ class PageController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Halaman berhasil dihapus.']);
 
         return redirect()->route('admin.pages.index');
+    }
+
+    /**
+     * Kembalikan halaman dari trash — Admin/Editor saja (lihat PagePolicy::restore).
+     */
+    public function restore(Page $page): RedirectResponse
+    {
+        $this->authorize('restore', $page);
+
+        $page->restore();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Halaman berhasil dikembalikan.']);
+
+        return redirect()->route('admin.pages.trash');
+    }
+
+    /**
+     * Hapus halaman permanen — translations (FK cascade) ikut terhapus.
+     */
+    public function forceDelete(Page $page): RedirectResponse
+    {
+        $this->authorize('forceDelete', $page);
+
+        $page->forceDelete();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Halaman berhasil dihapus permanen.']);
+
+        return redirect()->route('admin.pages.trash');
     }
 
     /**

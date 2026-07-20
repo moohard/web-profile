@@ -13,6 +13,7 @@ use App\Models\Language;
 use App\Models\Post;
 use App\Models\PostTranslation;
 use App\Models\Tag;
+use App\Models\User;
 use App\Services\Html\Sanitizer;
 use App\Support\ContentSlug;
 use Illuminate\Http\RedirectResponse;
@@ -51,7 +52,7 @@ class PostController extends Controller
                 ),
             )
             ->when(
-                $user !== null && $user->hasRole(UserRole::Author->value) && ! $user->hasAnyRole([UserRole::Admin->value, UserRole::Editor->value]),
+                $this->isAuthorScoped($user),
                 fn ($query) => $query->where('author_id', $user->id),
             )
             ->latest('updated_at')
@@ -66,6 +67,33 @@ class PostController extends Controller
                 'type' => $typeFilter,
                 'status' => $statusFilter,
             ],
+        ]);
+    }
+
+    /**
+     * Daftar post yang sudah di-trash (soft deleted) — Author hanya melihat miliknya.
+     */
+    public function trash(Request $request): Response
+    {
+        $this->authorize('viewAny', Post::class);
+
+        $user = $request->user();
+        $currentLanguageId = Language::current()->id;
+
+        $posts = Post::onlyTrashed()
+            ->with(['type.translations', 'translations', 'author'])
+            ->when(
+                $this->isAuthorScoped($user),
+                fn ($query) => $query->where('author_id', $user->id),
+            )
+            ->latest('deleted_at')
+            ->paginate(20)
+            ->withQueryString()
+            ->through(fn (Post $post): array => $this->toSummary($post, $currentLanguageId));
+
+        return Inertia::render('admin/posts/trash', [
+            'posts' => $posts,
+            'canManageTrash' => $user !== null && $user->hasAnyRole([UserRole::Admin->value, UserRole::Editor->value]),
         ]);
     }
 
@@ -154,7 +182,8 @@ class PostController extends Controller
     }
 
     /**
-     * Hapus post — otorisasi Admin/Editor bebas, Author hanya miliknya.
+     * Hapus post — otorisasi Admin/Editor bebas, Author hanya miliknya. Soft delete
+     * (trait SoftDeletes): translations & media tetap ada, muncul di trash.
      */
     public function destroy(Post $post): RedirectResponse
     {
@@ -165,6 +194,34 @@ class PostController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Post berhasil dihapus.']);
 
         return redirect()->route('admin.posts.index');
+    }
+
+    /**
+     * Kembalikan post dari trash — Admin/Editor saja (lihat PostPolicy::restore).
+     */
+    public function restore(Post $post): RedirectResponse
+    {
+        $this->authorize('restore', $post);
+
+        $post->restore();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Post berhasil dikembalikan.']);
+
+        return redirect()->route('admin.posts.trash');
+    }
+
+    /**
+     * Hapus post permanen — translations (FK cascade) & media (Spatie) ikut terhapus.
+     */
+    public function forceDelete(Post $post): RedirectResponse
+    {
+        $this->authorize('forceDelete', $post);
+
+        $post->forceDelete();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Post berhasil dihapus permanen.']);
+
+        return redirect()->route('admin.posts.trash');
     }
 
     /**
@@ -332,6 +389,16 @@ class PostController extends Controller
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * Apakah query post harus dibatasi ke milik user (Author tanpa role Admin/Editor).
+     */
+    private function isAuthorScoped(?User $user): bool
+    {
+        return $user !== null
+            && $user->hasRole(UserRole::Author->value)
+            && ! $user->hasAnyRole([UserRole::Admin->value, UserRole::Editor->value]);
     }
 
     /**

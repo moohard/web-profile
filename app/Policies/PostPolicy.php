@@ -60,6 +60,22 @@ class PostPolicy
     }
 
     /**
+     * Kembalikan post dari trash — Admin/Editor saja (Author tidak, meski miliknya sendiri).
+     */
+    public function restore(User $user, Post $post): bool
+    {
+        return $user->hasAnyRole([UserRole::Admin->value, UserRole::Editor->value]);
+    }
+
+    /**
+     * Hapus post permanen mengikuti aturan restore.
+     */
+    public function forceDelete(User $user, Post $post): bool
+    {
+        return $this->restore($user, $post);
+    }
+
+    /**
      * Apakah user adalah pemilik (author) dari post ini.
      */
     private function owns(User $user, Post $post): bool

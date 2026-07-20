@@ -56,3 +56,25 @@ it('Post::author mengembalikan relasi user pemilik', function () {
     expect($post->author)->not->toBeNull()
         ->and($post->author->id)->toBe($author->id);
 });
+
+it('Admin dan Editor boleh restore & forceDelete post', function () {
+    $admin = User::factory()->create()->assignRole(UserRole::Admin->value);
+    $editor = User::factory()->create()->assignRole(UserRole::Editor->value);
+    $post = Post::factory()->create(['type_id' => $this->type->id]);
+
+    expect($admin->can('restore', $post))->toBeTrue()
+        ->and($admin->can('forceDelete', $post))->toBeTrue()
+        ->and($editor->can('restore', $post))->toBeTrue()
+        ->and($editor->can('forceDelete', $post))->toBeTrue();
+});
+
+it('Author tidak boleh restore & forceDelete post — meski miliknya sendiri', function () {
+    $author = User::factory()->create()->assignRole(UserRole::Author->value);
+    $post = Post::factory()->create([
+        'type_id' => $this->type->id,
+        'author_id' => $author->id,
+    ]);
+
+    expect($author->can('restore', $post))->toBeFalse()
+        ->and($author->can('forceDelete', $post))->toBeFalse();
+});

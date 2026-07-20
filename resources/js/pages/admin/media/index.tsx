@@ -161,7 +161,7 @@ export default function MediaIndex({
         file: null,
         model_type: 'Post',
         model_id: 1,
-        collection: 'featured_image',
+        collection: 'featured',
         alt: '',
     });
 
@@ -247,7 +247,7 @@ export default function MediaIndex({
                             onChange={(e) =>
                                 form.setData('collection', e.target.value)
                             }
-                            placeholder="featured_image"
+                            placeholder="featured"
                             className="w-40"
                         />
                         <InputError message={form.errors.collection} />

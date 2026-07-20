@@ -14,6 +14,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -23,6 +25,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property ?int $category_id
  * @property ?int $author_id
  * @property ?string $featured_image
+ * @property ?Carbon $deleted_at
  */
 #[UsePolicy(PostPolicy::class)]
 class Post extends Model implements HasMedia
@@ -35,12 +38,13 @@ class Post extends Model implements HasMedia
     use HasFactory;
 
     use HasTranslations;
+    use SoftDeletes;
 
     protected $fillable = ['type_id', 'category_id', 'author_id', 'featured_image'];
 
     public function registerMediaCollections(): void
     {
-        $this->addMediaCollection('featured_image')->singleFile();
+        $this->addMediaCollection('featured')->singleFile();
     }
 
     /** @return BelongsTo<ContentType, $this> */

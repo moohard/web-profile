@@ -58,6 +58,8 @@ class GenerateSitemap extends Command
         // Custom pages published
         PageTranslation::query()
             ->where('status', PostStatus::Published->value)
+            // Halaman induk yang sudah di-trash (SoftDeletes) harus dikecualikan dari sitemap.
+            ->whereHas('page')
             ->with('language')
             ->each(function (PageTranslation $pt) use ($defaultCode, $sitemap): void {
                 $locale = $pt->language->code;

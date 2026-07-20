@@ -57,4 +57,21 @@ class PagePolicy
 
         return $user->can('pages.delete');
     }
+
+    /**
+     * Kembalikan halaman dari trash — Admin/Editor saja (tidak ada jalur permission
+     * seperti delete(), karena permission pages.restore sengaja tidak disediakan).
+     */
+    public function restore(User $user, Page $page): bool
+    {
+        return $user->hasRole(UserRole::Admin->value) || $user->hasRole(UserRole::Editor->value);
+    }
+
+    /**
+     * Hapus halaman permanen mengikuti aturan restore.
+     */
+    public function forceDelete(User $user, Page $page): bool
+    {
+        return $this->restore($user, $page);
+    }
 }

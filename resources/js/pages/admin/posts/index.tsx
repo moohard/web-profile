@@ -144,9 +144,14 @@ export default function PostsIndex({
             <div className="space-y-6 p-6">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-semibold">Posts</h1>
-                    <Button asChild>
-                        <a href={postsRoutes.create.url()}>Tambah post</a>
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button asChild variant="outline">
+                            <a href={postsRoutes.trash.url()}>Trash</a>
+                        </Button>
+                        <Button asChild>
+                            <a href={postsRoutes.create.url()}>Tambah post</a>
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="flex flex-wrap gap-3">

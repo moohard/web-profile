@@ -25,7 +25,7 @@ class MediaController extends Controller
      * @var array<string, list<string>>
      */
     private const COLLECTION_ALLOWLIST = [
-        'Post' => ['featured_image'],
+        'Post' => ['featured'],
         'Page' => ['hero_image'],
         'Testimonial' => ['photo'],
     ];
