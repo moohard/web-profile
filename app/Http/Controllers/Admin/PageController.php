@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\PageMode;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PageRequest;
@@ -238,12 +239,18 @@ class PageController extends Controller
 
             $content = $translation['content'] ?? '';
 
+            // Profil sanitasi ikut mode halaman: Template (Tiptap) pakai profil
+            // rich-text (default); Code (markup bebas) tetap profil cms_page.
+            $cleanedContent = $page->mode === PageMode::Code
+                ? $this->sanitizer->clean($content)
+                : $this->sanitizer->cleanRichText($content);
+
             $page->translations()->updateOrCreate(
                 ['language_id' => $languageId],
                 [
                     'title' => $translation['title'],
                     'slug' => $slug,
-                    'content' => ['html' => $this->sanitizer->clean($content)],
+                    'content' => ['html' => $cleanedContent],
                     'hero_heading' => $translation['hero_heading'] ?? null,
                     'hero_subheading' => $translation['hero_subheading'] ?? null,
                     'hero_cta_text' => $translation['hero_cta_text'] ?? null,

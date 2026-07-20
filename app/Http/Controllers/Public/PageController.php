@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Public;
 
+use App\Enums\PageMode;
 use App\Http\Controllers\Controller;
 use App\Models\Page;
 use App\Models\PageTranslation;
@@ -23,20 +24,24 @@ class PageController extends Controller
      */
     public function show(PageTranslation $translation): Response
     {
-        // Defense-in-depth: sanitasi HTML mode-code sebelum dikirim ke frontend
-        // (dirender via dangerouslySetInnerHTML di page-show.tsx).
-        $content = $translation->content;
-        if (is_array($content) && isset($content['html']) && is_string($content['html'])) {
-            $content['html'] = app(Sanitizer::class)->clean($content['html']);
-            $translation->content = $content;
-        }
-
         $translation->load('page');
         $page = $translation->page;
 
         // Halaman induk sudah di-trash (SoftDeletes): relasi null akibat global scope → 404,
         // bukan error 500 saat mengakses $page->id di bawah.
         abort_unless($page instanceof Page, 404);
+
+        // Defense-in-depth: sanitasi HTML sebelum dikirim ke frontend (dirender via
+        // dangerouslySetInnerHTML di page-show.tsx). Profil ikut mode halaman, sama
+        // seperti saat disimpan: Template → rich-text (default); Code → cms_page.
+        $content = $translation->content;
+        if (is_array($content) && isset($content['html']) && is_string($content['html'])) {
+            $sanitizer = app(Sanitizer::class);
+            $content['html'] = $page->mode === PageMode::Code
+                ? $sanitizer->clean($content['html'])
+                : $sanitizer->cleanRichText($content['html']);
+            $translation->content = $content;
+        }
 
         // Bridging region per-halaman: widget (scoped ke halaman ini) + hero + sidebar on/off.
         $props = PublicLayoutProps::base();

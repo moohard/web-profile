@@ -4,6 +4,7 @@ import type { FormEvent } from 'react';
 import { AiSuggestButton } from '@/components/admin/ai-suggest-button';
 import LanguageTabs from '@/components/admin/language-tabs';
 import type { LanguageOption } from '@/components/admin/language-tabs';
+import { RichTextEditor } from '@/components/admin/rich-text-editor';
 import InputError from '@/components/input-error';
 import { MediaPicker } from '@/components/media/media-picker';
 import { Button } from '@/components/ui/button';
@@ -392,10 +393,28 @@ export default function PageForm({
                                                     )}
                                                 </div>
                                             ) : (
-                                                <p className="text-sm text-muted-foreground">
-                                                    Konten halaman ini mengikuti
-                                                    template yang dipilih.
-                                                </p>
+                                                <div className="space-y-1">
+                                                    <Label
+                                                        htmlFor={`page-content-${lang.id}`}
+                                                    >
+                                                        Konten ({lang.code})
+                                                    </Label>
+                                                    <RichTextEditor
+                                                        id={`page-content-${lang.id}`}
+                                                        value={t.content}
+                                                        onChange={(content) =>
+                                                            updateTranslation(
+                                                                lang.id,
+                                                                { content },
+                                                            )
+                                                        }
+                                                    />
+                                                    <InputError
+                                                        message={fieldError(
+                                                            'content',
+                                                        )}
+                                                    />
+                                                </div>
                                             )}
                                         </div>
                                     );

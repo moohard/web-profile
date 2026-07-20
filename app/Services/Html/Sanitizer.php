@@ -18,4 +18,17 @@ class Sanitizer
 
         return is_string($cleaned) ? $cleaned : '';
     }
+
+    /**
+     * Bersihkan HTML rich-text dari editor Tiptap (body Post & konten mode
+     * Template Page). Profil `default`: izinkan heading/format dasar/list/
+     * link/quote/gambar; buang script, event handler on*, javascript/data URL,
+     * dan tag di luar allowlist rich-text (mis. div/table — beda dari cms_page).
+     */
+    public function cleanRichText(string $html): string
+    {
+        $cleaned = Purify::config('default')->clean($html);
+
+        return is_string($cleaned) ? $cleaned : '';
+    }
 }

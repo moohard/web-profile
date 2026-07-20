@@ -257,7 +257,7 @@ class PostController extends Controller
                 [
                     'title' => $translation['title'],
                     'slug' => $slug,
-                    'body' => $body !== null ? $this->sanitizer->clean($body) : null,
+                    'body' => $body !== null ? $this->sanitizer->cleanRichText($body) : null,
                     'status' => $translation['status'],
                     'published_at' => $translation['published_at'] ?? null,
                     'meta_title' => $translation['meta_title'] ?? null,
