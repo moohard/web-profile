@@ -9,11 +9,13 @@ use App\Models\PageTranslation;
 use App\Models\PostTranslation;
 use App\Models\WritingStyle;
 use App\Services\Ai\Tasks\ContentRefinementTask;
+use App\Services\Ai\Tasks\MarkupConformTask;
 use App\Services\Ai\Tasks\TranslationTask;
 use App\Services\Html\Sanitizer;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 class AiController extends Controller
@@ -21,6 +23,7 @@ class AiController extends Controller
     public function __construct(
         private TranslationTask $translation,
         private ContentRefinementTask $refinement,
+        private MarkupConformTask $markup,
         private Sanitizer $sanitizer,
     ) {}
 
@@ -102,6 +105,23 @@ class AiController extends Controller
         $suggestion = $this->refinement->suggest($validated['source_text'], $stylePrompt);
 
         return response()->json(['suggestion' => $suggestion]);
+    }
+
+    /**
+     * Hasilkan saran penyesuaian markup HTML ke referensi komponen design
+     * system, tanpa menyimpan ke database. Khusus Admin (mode Code halaman).
+     */
+    public function markupConform(Request $request): JsonResponse
+    {
+        abort_unless(Gate::allows('use-page-code-mode'), 403);
+
+        $validated = $request->validate([
+            'source_html' => ['required', 'string'],
+        ]);
+
+        $suggestion = $this->markup->suggest($validated['source_html']);
+
+        return response()->json(['suggestion' => $this->sanitizer->clean($suggestion)]);
     }
 
     /**

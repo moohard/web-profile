@@ -34,9 +34,17 @@ class AiConfigSeeder extends Seeder
             (string) config('services.meganova.base_url', ''),
             (string) config('services.meganova.chat_model', ''),
         );
+
+        $this->bootstrapTask(
+            AiTask::MarkupConform,
+            (string) config('services.meganova.key', ''),
+            (string) config('services.meganova.base_url', ''),
+            (string) config('services.meganova.chat_model', ''),
+            $this->componentReferenceSystemPrompt(),
+        );
     }
 
-    private function bootstrapTask(AiTask $task, string $key, string $baseUrl, string $model): void
+    private function bootstrapTask(AiTask $task, string $key, string $baseUrl, string $model, ?string $systemPrompt = null): void
     {
         if ($key === '') {
             return;
@@ -48,9 +56,26 @@ class AiConfigSeeder extends Seeder
                 'base_url' => $baseUrl,
                 'model' => $model,
                 'api_key' => $key,
-                'system_prompt' => null,
+                'system_prompt' => $systemPrompt,
                 'enabled' => true,
             ],
         );
+    }
+
+    /**
+     * Baca isi katalog komponen design system sebagai system prompt awal
+     * untuk task MarkupConform. Mengembalikan null bila file tidak ada.
+     */
+    private function componentReferenceSystemPrompt(): ?string
+    {
+        $path = base_path('docs/design-system/component-reference.md');
+
+        if (! is_file($path)) {
+            return null;
+        }
+
+        $contents = file_get_contents($path);
+
+        return $contents !== false ? $contents : null;
     }
 }

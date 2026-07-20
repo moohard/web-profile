@@ -1,6 +1,7 @@
 import { Head, useForm } from '@inertiajs/react';
 import { useState } from 'react';
 import type { FormEvent } from 'react';
+import { AiSuggestButton } from '@/components/admin/ai-suggest-button';
 import LanguageTabs from '@/components/admin/language-tabs';
 import type { LanguageOption } from '@/components/admin/language-tabs';
 import InputError from '@/components/input-error';
@@ -17,6 +18,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { dashboard } from '@/routes/admin';
+import { markupConform } from '@/routes/admin/ai';
 import pagesRoutes, { index as pagesIndex } from '@/routes/admin/pages';
 
 type TemplateOption = {
@@ -365,15 +367,29 @@ export default function PageForm({
                                                             'content',
                                                         )}
                                                     />
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        disabled
-                                                        title="Segera hadir (fase MARKUP_CONFORM)"
-                                                    >
-                                                        Sesuaikan markup (AI)
-                                                    </Button>
+                                                    {canUseCodeMode && (
+                                                        <AiSuggestButton
+                                                            label="Sesuaikan markup (AI)"
+                                                            endpoint={markupConform.url()}
+                                                            payload={() => ({
+                                                                source_html:
+                                                                    t.content,
+                                                            })}
+                                                            onAccept={(html) =>
+                                                                updateTranslation(
+                                                                    lang.id,
+                                                                    {
+                                                                        content:
+                                                                            html,
+                                                                    },
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                t.content.trim() ===
+                                                                ''
+                                                            }
+                                                        />
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <p className="text-sm text-muted-foreground">
