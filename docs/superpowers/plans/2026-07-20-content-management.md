@@ -113,14 +113,14 @@ Dari sederhana → kompleks, tiap task TDD. Fase K1–K2 memberi taksonomi (kate
 ## K2 — Jenis Konten (Content Types)
 
 ### Task K2.1: Policy + Request + Controller
-- [ ] **Test dulu:** `ContentTypeCrudTest` — CRUD ContentType + translations (name/description); toggle `is_active`; `writing_style_id` opsional; `archive_template_key`/`single_template_key` default `'default'`; hanya `content-types.*`.
-- [ ] `ContentTypePolicy` (map `content-types.*`), `ContentTypeRequest` (slug unik, icon nullable, writing_style_id nullable exists, template keys string, is_active bool, sort_order int, translations name required + description nullable).
-- [ ] `ContentTypeController --resource` (index/create/store/edit/update/destroy). `destroy` tolak bila `posts()->exists()`.
-- [ ] Route resource ganti placeholder `content-types.index`.
-- [ ] **Penting:** setelah create/update/delete ContentType, **bust cache** `inertia.content_types.*` dan `public_layout.*` (mereka di-cache 1 jam) agar sidebar dinamis & menu publik ikut ter-update. Tambah `Cache::forget` atau `Cache::flush` selektif di controller.
+- [x] **Test dulu:** `ContentTypeCrudTest` — CRUD ContentType + translations (name/description); toggle `is_active`; `writing_style_id` opsional; `archive_template_key`/`single_template_key` default `'default'`; hanya `content-types.*`.
+- [x] `ContentTypePolicy` (map `content-types.*`), `ContentTypeRequest` (slug unik, icon nullable, writing_style_id nullable exists, template keys string, is_active bool, sort_order int, translations name required + description nullable).
+- [x] `ContentTypeController --resource` (index/create/store/edit/update/destroy). `destroy` tolak bila `posts()->exists()`.
+- [x] Route resource ganti placeholder `content-types.index`.
+- [x] **Penting:** setelah create/update/delete ContentType, **bust cache** `inertia.content_types.*` dan `public_layout.*` (mereka di-cache 1 jam) agar sidebar dinamis & menu publik ikut ter-update. Tambah `Cache::forget` atau `Cache::flush` selektif di controller.
 
 ### Task K2.2: UI Content Types
-- [ ] `content-types/index.tsx` (tabel + status aktif + urutan) & `content-types/form.tsx` (slug, icon, writing style select, template keys, tab bahasa name/description). Wayfinder + types/lint/build hijau.
+- [x] `content-types/index.tsx` (tabel + status aktif + urutan) & `content-types/form.tsx` (slug, icon, writing style select, template keys, tab bahasa name/description). Wayfinder + types/lint/build hijau.
 
 ---
 

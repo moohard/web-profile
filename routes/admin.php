@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Admin\AiConfigController;
 use App\Http\Controllers\Admin\AiController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\ContentTypeController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\TagController;
@@ -30,7 +31,12 @@ Route::put('/settings/ai/{task}', [AiConfigController::class, 'update'])
     ->middleware('permission:admin.access-system')
     ->name('settings.ai.update');
 Route::get('/settings/languages', fn () => Inertia::render('admin/placeholder', ['section' => 'Bahasa']))->name('settings.languages')->middleware('permission:admin.access-system');
-Route::get('/content-types', fn () => Inertia::render('admin/placeholder', ['section' => 'Jenis Konten']))->name('content-types.index');
+Route::get('/content-types', [ContentTypeController::class, 'index'])->name('content-types.index');
+Route::get('/content-types/create', [ContentTypeController::class, 'create'])->name('content-types.create');
+Route::post('/content-types', [ContentTypeController::class, 'store'])->name('content-types.store');
+Route::get('/content-types/{contentType}/edit', [ContentTypeController::class, 'edit'])->name('content-types.edit');
+Route::put('/content-types/{contentType}', [ContentTypeController::class, 'update'])->name('content-types.update');
+Route::delete('/content-types/{contentType}', [ContentTypeController::class, 'destroy'])->name('content-types.destroy');
 Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
 Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
 Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');

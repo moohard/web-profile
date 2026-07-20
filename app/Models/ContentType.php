@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Policies\ContentTypePolicy;
 use App\Support\HasTranslations;
 use Database\Factories\ContentTypeFactory;
+use Illuminate\Database\Eloquent\Attributes\UsePolicy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -22,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $is_active
  * @property int $sort_order
  */
+#[UsePolicy(ContentTypePolicy::class)]
 class ContentType extends Model
 {
     /** @use HasFactory<ContentTypeFactory> */

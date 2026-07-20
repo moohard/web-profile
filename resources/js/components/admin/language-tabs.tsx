@@ -16,11 +16,16 @@ type LanguageTabsProps = {
     errors?: Record<number, string | undefined>;
     onChange: (languageId: number, value: string) => void;
     idPrefix: string;
+    /** Nilai deskripsi opsional per bahasa (mis. untuk Jenis Konten). */
+    descriptionValues?: Record<number, string>;
+    descriptionErrors?: Record<number, string | undefined>;
+    onDescriptionChange?: (languageId: number, value: string) => void;
 };
 
 /**
- * Tab per bahasa untuk input nama terjemahan (Category/Tag).
- * Tab dikendalikan via useState lokal — bukan Radix — sesuai konvensi ringan admin.
+ * Tab per bahasa untuk input nama (+ deskripsi opsional) terjemahan
+ * (Category/Tag/ContentType). Tab dikendalikan via useState lokal — bukan
+ * Radix — sesuai konvensi ringan admin.
  */
 export default function LanguageTabs({
     languages,
@@ -28,7 +33,11 @@ export default function LanguageTabs({
     errors,
     onChange,
     idPrefix,
+    descriptionValues,
+    descriptionErrors,
+    onDescriptionChange,
 }: LanguageTabsProps) {
+    const withDescription = onDescriptionChange !== undefined;
     const [active, setActive] = useState<number>(languages[0]?.id ?? 0);
 
     if (languages.length === 0) {
@@ -85,6 +94,32 @@ export default function LanguageTabs({
                         placeholder={`Nama dalam ${lang.name}`}
                     />
                     <InputError message={errors?.[lang.id]} />
+
+                    {withDescription && (
+                        <>
+                            <Label
+                                htmlFor={`${idPrefix}-description-${lang.id}`}
+                            >
+                                Deskripsi ({lang.code})
+                            </Label>
+                            <textarea
+                                id={`${idPrefix}-description-${lang.id}`}
+                                value={descriptionValues?.[lang.id] ?? ''}
+                                onChange={(e) =>
+                                    onDescriptionChange?.(
+                                        lang.id,
+                                        e.target.value,
+                                    )
+                                }
+                                rows={3}
+                                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                placeholder={`Deskripsi dalam ${lang.name}`}
+                            />
+                            <InputError
+                                message={descriptionErrors?.[lang.id]}
+                            />
+                        </>
+                    )}
                 </div>
             ))}
         </div>
