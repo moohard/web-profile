@@ -35,4 +35,11 @@ return [
         ],
     ],
 
+    // BytePlus Ark — provider terjemahan AI (model seed-translation, Responses API).
+    'ark' => [
+        'key' => env('ARK_API_KEY'),
+        'base_url' => env('ARK_BASE_URL', 'https://ark.ap-southeast.bytepluses.com/api/v3'),
+        'translation_model' => env('ARK_TRANSLATION_MODEL', 'seed-translation-250915'),
+    ],
+
 ];

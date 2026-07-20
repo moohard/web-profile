@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             WritingStyleSeeder::class,
             ContentTypeSeeder::class,
             RatingCriteriaSeeder::class,
+            AiConfigSeeder::class,
             AdminUserSeeder::class,
             DemoPostSeeder::class,
         ]);

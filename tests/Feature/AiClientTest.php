@@ -3,6 +3,7 @@
 use App\Enums\AiTask;
 use App\Models\AiConfig;
 use App\Services\Ai\AiClient;
+use App\Services\Ai\ArkTranslationClient;
 use App\Services\Ai\Tasks\ContentRefinementTask;
 use App\Services\Ai\Tasks\MarkupConformTask;
 use App\Services\Ai\Tasks\TranslationTask;
@@ -24,22 +25,11 @@ it('AiConfig api_key tersimpan terenkripsi', function () {
         ->and($cfg->fresh()->api_key)->toBe('super-secret');
 });
 
-it('TranslationTask::translate memanggil AiClient dengan prompt', function () {
-    AiConfig::create([
-        'task' => AiTask::Translation,
-        'enabled' => true,
-        'api_key' => 'k',
-        'base_url' => 'https://x.test/v1',
-        'model' => 'gpt-4o-mini',
-        'system_prompt' => '',
-    ]);
-
-    $mock = Mockery::mock(AiClient::class);
-    $mock->shouldReceive('task')->with(AiTask::Translation)->andReturnSelf();
-    $mock->shouldReceive('chat')
-        ->with(Mockery::on(fn ($p) => str_contains($p, 'halo dunia')
-            && str_contains($p, '[id]')
-            && str_contains($p, '[en]')))
+it('TranslationTask mendelegasikan ke ArkTranslationClient', function () {
+    $mock = Mockery::mock(ArkTranslationClient::class);
+    $mock->shouldReceive('translate')
+        ->once()
+        ->with('halo dunia', 'id', 'en')
         ->andReturn('hello world');
 
     $task = new TranslationTask($mock);
