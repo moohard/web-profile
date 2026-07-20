@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Admin\AiConfigController;
 use App\Http\Controllers\Admin\AiController;
+use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\TagController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -29,8 +31,15 @@ Route::put('/settings/ai/{task}', [AiConfigController::class, 'update'])
     ->name('settings.ai.update');
 Route::get('/settings/languages', fn () => Inertia::render('admin/placeholder', ['section' => 'Bahasa']))->name('settings.languages')->middleware('permission:admin.access-system');
 Route::get('/content-types', fn () => Inertia::render('admin/placeholder', ['section' => 'Jenis Konten']))->name('content-types.index');
-Route::get('/categories', fn () => Inertia::render('admin/placeholder', ['section' => 'Kategori']))->name('categories.index');
-Route::get('/tags', fn () => Inertia::render('admin/placeholder', ['section' => 'Tag']))->name('tags.index');
+Route::get('/categories', [CategoryController::class, 'index'])->name('categories.index');
+Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
+Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
+Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+
+Route::get('/tags', [TagController::class, 'index'])->name('tags.index');
+Route::post('/tags', [TagController::class, 'store'])->name('tags.store');
+Route::put('/tags/{tag}', [TagController::class, 'update'])->name('tags.update');
+Route::delete('/tags/{tag}', [TagController::class, 'destroy'])->name('tags.destroy');
 Route::get('/galleries', fn () => Inertia::render('admin/placeholder', ['section' => 'Galeri']))->name('galleries.index');
 Route::get('/writing-styles', fn () => Inertia::render('admin/placeholder', ['section' => 'Gaya Bahasa']))->name('writing-styles.index')->middleware('permission:admin.access-system');
 Route::get('/rating-criteria', fn () => Inertia::render('admin/placeholder', ['section' => 'Kriteria Penilaian']))->name('rating-criteria.index')->middleware('permission:admin.access-system');

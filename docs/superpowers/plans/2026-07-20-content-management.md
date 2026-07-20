@@ -88,25 +88,25 @@ Dari sederhana → kompleks, tiap task TDD. Fase K1–K2 memberi taksonomi (kate
 ## K1 — Kategori & Tag
 
 ### Task K1.1: Factories + Policy Category/Tag
-- [ ] **Test dulu:** `CategoryCrudTest` — Admin GET `/admin/categories` 200 & render `admin/categories/index`; POST membuat Category + `CategoryTranslation` per bahasa; user tanpa `content-types.viewAny` → 403.
-- [ ] `php artisan make:factory CategoryFactory` (+ `CategoryTranslationFactory`, `TagFactory`, `TagTranslationFactory`). State `->withTranslation(locale, langId, ['name'=>...])` mengikuti pola `PostFactory::withTranslation`.
-- [ ] `php artisan make:policy CategoryPolicy` (+ Tag) — semua method map ke permission `content-types.*` (`viewAny/create/update/delete`); daftarkan via atribut `#[UsePolicy]` di model atau `Gate`/auto-discovery.
+- [x] **Test dulu:** `CategoryCrudTest` — Admin GET `/admin/categories` 200 & render `admin/categories/index`; POST membuat Category + `CategoryTranslation` per bahasa; user tanpa `content-types.viewAny` → 403.
+- [x] `php artisan make:factory CategoryFactory` (+ `CategoryTranslationFactory`, `TagFactory`, `TagTranslationFactory`). State `->withTranslation(locale, langId, ['name'=>...])` mengikuti pola `PostFactory::withTranslation`.
+- [x] `php artisan make:policy CategoryPolicy` (+ Tag) — semua method map ke permission `content-types.*` (`viewAny/create/update/delete`); daftarkan via atribut `#[UsePolicy]` di model atau `Gate`/auto-discovery.
 
 ### Task K1.2: Controller + Request + Routes (Category)
-- [ ] `php artisan make:controller Admin/CategoryController --resource` (buang method yang tak dipakai; simpan index/store/update/destroy — kategori dikelola inline, tanpa halaman create/edit terpisah).
-- [ ] `php artisan make:request Admin/CategoryRequest`: `slug` (nullable→auto), `parent_id` (nullable exists), `sort_order` (int), `translations` (array; `translations.*.language_id` exists, `translations.*.name` required string). `authorize()` delegasi ke policy.
-- [ ] `index`: daftar kategori + `translate()` nama untuk locale aktif + pohon (parent/children) + kirim `languages` aktif untuk form.
-- [ ] `store`/`update`: transaksi — simpan Category, upsert `CategoryTranslation` per bahasa; slug via `ContentSlug::unique(Category::class, $slug ?? $name)`.
-- [ ] `destroy`: cegah hapus bila punya posts (atau set null) — putuskan: **tolak** dengan pesan bila `posts()->exists()`.
-- [ ] `routes/admin.php`: ganti placeholder `categories.index` → `Route::resource('categories', CategoryController::class)->only([...])->middleware('permission:content-types.viewAny')` (sesuaikan per-method permission via policy).
-- [ ] Verifikasi: `php artisan test --compact --filter=CategoryCrudTest` hijau. `pint --dirty`.
+- [x] `php artisan make:controller Admin/CategoryController --resource` (buang method yang tak dipakai; simpan index/store/update/destroy — kategori dikelola inline, tanpa halaman create/edit terpisah).
+- [x] `php artisan make:request Admin/CategoryRequest`: `slug` (nullable→auto), `parent_id` (nullable exists), `sort_order` (int), `translations` (array; `translations.*.language_id` exists, `translations.*.name` required string). `authorize()` delegasi ke policy.
+- [x] `index`: daftar kategori + `translate()` nama untuk locale aktif + pohon (parent/children) + kirim `languages` aktif untuk form.
+- [x] `store`/`update`: transaksi — simpan Category, upsert `CategoryTranslation` per bahasa; slug via `ContentSlug::unique(Category::class, $slug ?? $name)`.
+- [x] `destroy`: cegah hapus bila punya posts (atau set null) — putuskan: **tolak** dengan pesan bila `posts()->exists()`.
+- [x] `routes/admin.php`: ganti placeholder `categories.index` → `Route::resource('categories', CategoryController::class)->only([...])->middleware('permission:content-types.viewAny')` (sesuaikan per-method permission via policy).
+- [x] Verifikasi: `php artisan test --compact --filter=CategoryCrudTest` hijau. `pint --dirty`.
 
 ### Task K1.3: Tag (ulangi pola K1.2, lebih ringan — hanya `slug` + `name`)
-- [ ] `TagCrudTest` + `TagController` + `TagRequest` + route resource. Verifikasi hijau.
+- [x] `TagCrudTest` + `TagController` + `TagRequest` + route resource. Verifikasi hijau.
 
 ### Task K1.4: UI Kategori & Tag
-- [ ] `admin/categories/index.tsx` + `admin/tags/index.tsx`: `DataTable` ringan + form tambah/edit (dialog `components/ui/dialog` yang sudah ada) dengan input nama **per bahasa** (`LanguageTabs`). Pakai `useForm` + Wayfinder `.url()`. Toast sukses via `sonner` (sudah ada).
-- [ ] Verifikasi: `npm run types:check`, `npm run lint:check`, `npm run build`.
+- [x] `admin/categories/index.tsx` + `admin/tags/index.tsx`: `DataTable` ringan + form tambah/edit (dialog `components/ui/dialog` yang sudah ada) dengan input nama **per bahasa** (`LanguageTabs`). Pakai `useForm` + Wayfinder `.url()`. Toast sukses via `sonner` (sudah ada).
+- [x] Verifikasi: `npm run types:check`, `npm run lint:check`, `npm run build`.
 
 ---
 
