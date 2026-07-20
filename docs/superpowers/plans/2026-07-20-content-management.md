@@ -164,13 +164,13 @@ Dari sederhana → kompleks, tiap task TDD. Fase K1–K2 memberi taksonomi (kate
 ## K5 — AI di Editor (Terjemahkan + Koreksi)
 
 ### Task K5.1: Implement `ContentRefinementTask` + endpoint
-- [ ] **Test dulu:** `AiRefineTest` — mock `AiClient` (pola `AiClientTest`/`AiControllerTest`): POST `/admin/ai/refine` mengembalikan `{suggestion}`; otorisasi via parent update (403 utk non-pemilik); throttle. Tidak menulis DB (non-destruktif).
-- [ ] `ContentRefinementTask::suggest(string $text, string $writingStylePrompt): string` — bangun prompt (gaya + teks, pertahankan HTML), `->task(AiTask::ContentRefinement)->chat()`. Hapus `throw`.
-- [ ] `AiController::refine(Request)`: validasi `entity_type,entity_id,field(title|body|meta_*),writing_style_id?`; `authorizeParentUpdate`; ambil source text (reuse `extractSourceText`); resolusi `writing_style` (dari ContentType post bila ada, atau `writing_style_id`); panggil task; return `{suggestion}`. Route `POST /admin/ai/refine` `permission:ai.update` + `throttle:30,1`.
+- [x] **Test dulu:** `AiRefineTest` — mock `AiClient` (pola `AiClientTest`/`AiControllerTest`): POST `/admin/ai/refine` mengembalikan `{suggestion}`; otorisasi via parent update (403 utk non-pemilik); throttle. Tidak menulis DB (non-destruktif).
+- [x] `ContentRefinementTask::suggest(string $text, string $writingStylePrompt): string` — bangun prompt (gaya + teks, pertahankan HTML), `->task(AiTask::ContentRefinement)->chat()`. Hapus `throw`.
+- [x] `AiController::refine(Request)`: validasi `entity_type,entity_id,field(title|body|meta_*),writing_style_id?`; `authorizeParentUpdate`; ambil source text (reuse `extractSourceText`); resolusi `writing_style` (dari ContentType post bila ada, atau `writing_style_id`); panggil task; return `{suggestion}`. Route `POST /admin/ai/refine` `permission:ai.update` + `throttle:30,1`.
 
 ### Task K5.2: Wiring UI AI
-- [ ] `AiSuggestButton`: mode `translate` (reuse endpoint `ai.translate`) & `refine` (`ai.refine`). Panggil via `useHttp`/router XHR; tampilkan hasil sebagai **saran** (panel Terima/Batalkan). "Terima" → set nilai field di form (non-destruktif; simpan tetap lewat submit form atau `ai.apply-translation`).
-- [ ] Aktifkan tombol di `posts/form.tsx` (title/body/meta per bahasa). types/lint/build hijau.
+- [x] `AiSuggestButton`: mode `translate` (reuse endpoint `ai.translate`) & `refine` (`ai.refine`). Panggil via `useHttp`/router XHR; tampilkan hasil sebagai **saran** (panel Terima/Batalkan). "Terima" → set nilai field di form (non-destruktif; simpan tetap lewat submit form atau `ai.apply-translation`).
+- [x] Aktifkan tombol di `posts/form.tsx` (title/body/meta per bahasa). types/lint/build hijau.
 
 ---
 

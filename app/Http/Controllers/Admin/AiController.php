@@ -7,6 +7,8 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\PageTranslation;
 use App\Models\PostTranslation;
+use App\Models\WritingStyle;
+use App\Services\Ai\Tasks\ContentRefinementTask;
 use App\Services\Ai\Tasks\TranslationTask;
 use App\Services\Html\Sanitizer;
 use Illuminate\Database\Eloquent\Model;
@@ -18,21 +20,46 @@ class AiController extends Controller
 {
     public function __construct(
         private TranslationTask $translation,
+        private ContentRefinementTask $refinement,
         private Sanitizer $sanitizer,
     ) {}
 
     /**
      * Hasilkan saran terjemahan AI tanpa menyimpan ke database.
+     *
+     * Mendukung dua mode: teks mentah (`source_text`, mis. draft yang belum
+     * disimpan di editor) — tanpa resolusi entity/otorisasi parent (otorisasi
+     * cukup lewat middleware permission route); atau entity tersimpan
+     * (`entity_type` + `entity_id` + `field`) seperti semula.
      */
     public function translate(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'source_locale' => ['required', 'string', 'size:2'],
             'target_locale' => ['required', 'string', 'size:2'],
-            'entity_type' => ['required', 'in:PostTranslation,PageTranslation'],
-            'entity_id' => ['required', 'integer'],
-            'field' => ['required', 'in:title,body,meta_title,meta_description,content'],
+            'source_text' => ['nullable', 'string'],
+            'entity_type' => ['required_without:source_text', 'in:PostTranslation,PageTranslation'],
+            'entity_id' => ['required_without:source_text', 'integer'],
+            'field' => ['required_without:source_text', 'in:title,body,meta_title,meta_description,content'],
         ]);
+
+        $rawSourceText = $validated['source_text'] ?? null;
+
+        if ($rawSourceText !== null) {
+            $sourceText = trim($rawSourceText);
+
+            if ($sourceText === '') {
+                return response()->json(['suggestion' => '', 'error' => 'Source kosong.'], 422);
+            }
+
+            $suggestion = $this->translation->translate(
+                text: $sourceText,
+                sourceLocale: $validated['source_locale'],
+                targetLocale: $validated['target_locale'],
+            );
+
+            return response()->json(['suggestion' => $suggestion]);
+        }
 
         $entity = $this->resolveEntity($validated['entity_type'], (int) $validated['entity_id']);
         $this->authorizeParentUpdate($entity);
@@ -48,6 +75,31 @@ class AiController extends Controller
             sourceLocale: $validated['source_locale'],
             targetLocale: $validated['target_locale'],
         );
+
+        return response()->json(['suggestion' => $suggestion]);
+    }
+
+    /**
+     * Hasilkan saran koreksi/penyempurnaan gaya bahasa AI tanpa menyimpan ke
+     * database. Selalu bekerja atas teks mentah dari client (editor belum
+     * tentu punya entity tersimpan) — otorisasi cukup lewat middleware
+     * permission route (`ai.update`).
+     */
+    public function refine(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'source_text' => ['required', 'string'],
+            'writing_style_id' => ['nullable', 'integer', 'exists:writing_styles,id'],
+        ]);
+
+        $stylePrompt = '';
+
+        if (! empty($validated['writing_style_id'])) {
+            $writingStyle = WritingStyle::query()->find((int) $validated['writing_style_id']);
+            $stylePrompt = $writingStyle->prompt ?? '';
+        }
+
+        $suggestion = $this->refinement->suggest($validated['source_text'], $stylePrompt);
 
         return response()->json(['suggestion' => $suggestion]);
     }

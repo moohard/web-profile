@@ -1,5 +1,6 @@
 import { Head, useForm } from '@inertiajs/react';
 import type { FormEvent } from 'react';
+import { AiSuggestButton } from '@/components/admin/ai-suggest-button';
 import LanguageTabs from '@/components/admin/language-tabs';
 import type { LanguageOption } from '@/components/admin/language-tabs';
 import InputError from '@/components/input-error';
@@ -16,12 +17,14 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { dashboard } from '@/routes/admin';
+import aiRoutes from '@/routes/admin/ai';
 import postsRoutes, { index as postsIndex } from '@/routes/admin/posts';
 
 type ContentTypeOption = {
     id: number;
     slug: string;
     name: string;
+    writing_style_id: number | null;
 };
 
 type CategoryOption = {
@@ -131,6 +134,10 @@ export default function PostForm({
 }) {
     const isEditing = post !== null;
 
+    /** Bahasa sumber default untuk terjemahan AI — 'id' bila ada, jika tidak bahasa aktif pertama. */
+    const defaultLanguage =
+        languages.find((lang) => lang.code === 'id') ?? languages[0];
+
     const form = useForm<PostFormData>({
         type_id: post?.type_id ?? contentTypes[0]?.id ?? null,
         category_id: post?.category_id ?? null,
@@ -144,6 +151,11 @@ export default function PostForm({
     // seluruh bahasa yang judulnya terisi, sesuai urutan `languages`).
     const errorsAt = form.errors as Record<string, string | undefined>;
     const translationsError = errorsAt.translations;
+
+    // Gaya bahasa dari jenis konten yang dipilih — dipakai sebagai konteks "Koreksi dengan AI".
+    const selectedWritingStyleId =
+        contentTypes.find((ct) => ct.id === form.data.type_id)
+            ?.writing_style_id ?? null;
 
     function updateTranslation(
         languageId: number,
@@ -266,6 +278,64 @@ export default function PostForm({
                                                         'title',
                                                     )}
                                                 />
+                                                <div className="flex flex-wrap gap-2 pt-1">
+                                                    {defaultLanguage && (
+                                                        <AiSuggestButton
+                                                            label="Terjemahkan dengan AI"
+                                                            endpoint={aiRoutes.translate.url()}
+                                                            payload={() => ({
+                                                                source_text:
+                                                                    form.data
+                                                                        .translations[
+                                                                        defaultLanguage
+                                                                            .id
+                                                                    ]?.title ??
+                                                                    '',
+                                                                source_locale:
+                                                                    defaultLanguage.code,
+                                                                target_locale:
+                                                                    lang.code,
+                                                            })}
+                                                            onAccept={(text) =>
+                                                                updateTranslation(
+                                                                    lang.id,
+                                                                    {
+                                                                        title: text,
+                                                                    },
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                !form.data
+                                                                    .translations[
+                                                                    defaultLanguage
+                                                                        .id
+                                                                ]?.title
+                                                            }
+                                                        />
+                                                    )}
+                                                    <AiSuggestButton
+                                                        label="Koreksi dengan AI"
+                                                        endpoint={aiRoutes.refine.url()}
+                                                        payload={() => ({
+                                                            source_text:
+                                                                form.data
+                                                                    .translations[
+                                                                    lang.id
+                                                                ]?.title ?? '',
+                                                            writing_style_id:
+                                                                selectedWritingStyleId,
+                                                        })}
+                                                        onAccept={(text) =>
+                                                            updateTranslation(
+                                                                lang.id,
+                                                                {
+                                                                    title: text,
+                                                                },
+                                                            )
+                                                        }
+                                                        disabled={!t.title}
+                                                    />
+                                                </div>
                                             </div>
 
                                             <div className="space-y-1">
@@ -318,24 +388,63 @@ export default function PostForm({
                                                 <InputError
                                                     message={fieldError('body')}
                                                 />
-                                                {/* AI belum aktif di K4 — tombol Terjemahkan/Koreksi menyusul di K5 */}
-                                                <div className="flex gap-2 pt-1">
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        disabled
-                                                    >
-                                                        Terjemahkan dengan AI
-                                                    </Button>
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        disabled
-                                                    >
-                                                        Koreksi dengan AI
-                                                    </Button>
+                                                <div className="flex flex-wrap gap-2 pt-1">
+                                                    {defaultLanguage && (
+                                                        <AiSuggestButton
+                                                            label="Terjemahkan dengan AI"
+                                                            endpoint={aiRoutes.translate.url()}
+                                                            payload={() => ({
+                                                                source_text:
+                                                                    form.data
+                                                                        .translations[
+                                                                        defaultLanguage
+                                                                            .id
+                                                                    ]?.body ??
+                                                                    '',
+                                                                source_locale:
+                                                                    defaultLanguage.code,
+                                                                target_locale:
+                                                                    lang.code,
+                                                            })}
+                                                            onAccept={(text) =>
+                                                                updateTranslation(
+                                                                    lang.id,
+                                                                    {
+                                                                        body: text,
+                                                                    },
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                !form.data
+                                                                    .translations[
+                                                                    defaultLanguage
+                                                                        .id
+                                                                ]?.body
+                                                            }
+                                                        />
+                                                    )}
+                                                    <AiSuggestButton
+                                                        label="Koreksi dengan AI"
+                                                        endpoint={aiRoutes.refine.url()}
+                                                        payload={() => ({
+                                                            source_text:
+                                                                form.data
+                                                                    .translations[
+                                                                    lang.id
+                                                                ]?.body ?? '',
+                                                            writing_style_id:
+                                                                selectedWritingStyleId,
+                                                        })}
+                                                        onAccept={(text) =>
+                                                            updateTranslation(
+                                                                lang.id,
+                                                                {
+                                                                    body: text,
+                                                                },
+                                                            )
+                                                        }
+                                                        disabled={!t.body}
+                                                    />
                                                 </div>
                                             </div>
 

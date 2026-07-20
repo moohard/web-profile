@@ -285,7 +285,7 @@ class PostController extends Controller
     }
 
     /**
-     * @return array<int, array{id: int, slug: string, name: string}>
+     * @return array<int, array{id: int, slug: string, name: string, writing_style_id: ?int}>
      */
     private function contentTypeOptions(): array
     {
@@ -303,6 +303,7 @@ class PostController extends Controller
                     'id' => $contentType->id,
                     'slug' => $contentType->slug,
                     'name' => $translation !== null ? $translation->name : $contentType->slug,
+                    'writing_style_id' => $contentType->writing_style_id,
                 ];
             })
             ->values()

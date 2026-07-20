@@ -75,3 +75,6 @@ Route::post('/ai/translate', [AiController::class, 'translate'])
 Route::post('/ai/apply-translation', [AiController::class, 'applyTranslation'])
     ->middleware(['permission:ai.update', 'throttle:30,1'])
     ->name('ai.apply-translation');
+Route::post('/ai/refine', [AiController::class, 'refine'])
+    ->middleware(['permission:ai.update', 'throttle:30,1'])
+    ->name('ai.refine');
