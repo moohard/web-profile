@@ -57,6 +57,59 @@ function categoryName(category: Category, languages: LanguageOption[]): string {
     return match?.name ?? '(tanpa nama)';
 }
 
+type CategoryNode = {
+    category: Category;
+    depth: number;
+};
+
+/**
+ * Susun kategori flat (dengan `parent_id`) menjadi urutan tree: induk lalu
+ * anak-anaknya tepat di bawahnya (diindentasi via `depth`), diurutkan
+ * `sort_order` di setiap level. Kategori dengan `parent_id` yang tidak valid
+ * (induk sudah terhapus) diperlakukan sebagai level teratas agar tidak
+ * hilang dari daftar. Guard siklus mencegah rekursi tak berhenti bila data
+ * `parent_id` korup (mis. A → B → A).
+ */
+function buildCategoryTree(categories: Category[]): CategoryNode[] {
+    const idsInList = new Set(categories.map((c) => c.id));
+    const childrenByParent = new Map<number | null, Category[]>();
+
+    for (const category of categories) {
+        const parentId =
+            category.parent_id !== null && idsInList.has(category.parent_id)
+                ? category.parent_id
+                : null;
+        const siblings = childrenByParent.get(parentId) ?? [];
+        siblings.push(category);
+        childrenByParent.set(parentId, siblings);
+    }
+
+    for (const siblings of childrenByParent.values()) {
+        siblings.sort((a, b) => a.sort_order - b.sort_order);
+    }
+
+    const nodes: CategoryNode[] = [];
+
+    function visit(
+        parentId: number | null,
+        depth: number,
+        ancestors: Set<number>,
+    ) {
+        for (const category of childrenByParent.get(parentId) ?? []) {
+            if (ancestors.has(category.id)) {
+                continue;
+            }
+
+            nodes.push({ category, depth });
+            visit(category.id, depth + 1, new Set(ancestors).add(category.id));
+        }
+    }
+
+    visit(null, 0, new Set());
+
+    return nodes;
+}
+
 function buildInitialTranslations(
     languages: LanguageOption[],
     category?: Category,
@@ -256,22 +309,41 @@ export default function CategoriesIndex({
         });
     }
 
-    const columns: DataTableColumn<Category>[] = [
+    const columns: DataTableColumn<CategoryNode>[] = [
         {
             key: 'name',
             header: 'Nama',
-            render: (row) => categoryName(row, languages),
+            render: ({ category, depth }) => (
+                <span
+                    className="flex items-center gap-1.5"
+                    style={{ paddingLeft: `${depth * 1.25}rem` }}
+                >
+                    {depth > 0 && (
+                        <span
+                            aria-hidden="true"
+                            className="text-muted-foreground"
+                        >
+                            ↳
+                        </span>
+                    )}
+                    {categoryName(category, languages)}
+                </span>
+            ),
         },
         {
             key: 'slug',
             header: 'Slug',
-            render: (row) => <code className="text-xs">{row.slug}</code>,
+            render: ({ category }) => (
+                <code className="text-xs">{category.slug}</code>
+            ),
         },
         {
             key: 'parent',
             header: 'Induk',
-            render: (row) => {
-                const parent = categories.find((c) => c.id === row.parent_id);
+            render: ({ category }) => {
+                const parent = categories.find(
+                    (c) => c.id === category.parent_id,
+                );
 
                 return parent ? categoryName(parent, languages) : '—';
             },
@@ -279,19 +351,19 @@ export default function CategoriesIndex({
         {
             key: 'sort_order',
             header: 'Urutan',
-            render: (row) => row.sort_order,
+            render: ({ category }) => category.sort_order,
         },
         {
             key: 'actions',
             header: '',
             className: 'text-right',
-            render: (row) => (
+            render: ({ category }) => (
                 <div className="flex justify-end gap-2">
                     <Button
                         type="button"
                         size="sm"
                         variant="outline"
-                        onClick={() => setDialogFor(row.id)}
+                        onClick={() => setDialogFor(category.id)}
                     >
                         Ubah
                     </Button>
@@ -299,7 +371,7 @@ export default function CategoriesIndex({
                         type="button"
                         size="sm"
                         variant="destructive"
-                        onClick={() => deleteCategory(row)}
+                        onClick={() => deleteCategory(category)}
                     >
                         Hapus
                     </Button>
@@ -307,6 +379,8 @@ export default function CategoriesIndex({
             ),
         },
     ];
+
+    const categoryTree = buildCategoryTree(categories);
 
     const editingCategory =
         typeof dialogFor === 'number'
@@ -326,8 +400,8 @@ export default function CategoriesIndex({
 
                 <DataTable
                     columns={columns}
-                    data={categories}
-                    rowKey={(row) => row.id}
+                    data={categoryTree}
+                    rowKey={(row) => row.category.id}
                     emptyMessage="Belum ada kategori. Tambahkan kategori pertama."
                 />
             </div>

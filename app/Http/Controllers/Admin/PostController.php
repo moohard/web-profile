@@ -18,6 +18,7 @@ use App\Services\Html\Sanitizer;
 use App\Support\ContentSlug;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -36,6 +37,7 @@ class PostController extends Controller
 
         $user = $request->user();
         $currentLanguageId = Language::current()->id;
+        $languages = Language::active()->get(['id', 'code']);
         $typeFilter = $request->string('type')->value() ?: null;
         $statusFilter = $request->string('status')->value() ?: null;
 
@@ -59,7 +61,7 @@ class PostController extends Controller
             ->latest('updated_at')
             ->paginate(20)
             ->withQueryString()
-            ->through(fn (Post $post): array => $this->toSummary($post, $currentLanguageId));
+            ->through(fn (Post $post): array => $this->toSummary($post, $currentLanguageId, $languages));
 
         return Inertia::render('admin/posts/index', [
             'posts' => $posts,
@@ -80,6 +82,7 @@ class PostController extends Controller
 
         $user = $request->user();
         $currentLanguageId = Language::current()->id;
+        $languages = Language::active()->get(['id', 'code']);
 
         $posts = Post::onlyTrashed()
             ->with(['type.translations', 'translations', 'author'])
@@ -90,7 +93,7 @@ class PostController extends Controller
             ->latest('deleted_at')
             ->paginate(20)
             ->withQueryString()
-            ->through(fn (Post $post): array => $this->toSummary($post, $currentLanguageId));
+            ->through(fn (Post $post): array => $this->toSummary($post, $currentLanguageId, $languages));
 
         return Inertia::render('admin/posts/trash', [
             'posts' => $posts,
@@ -129,7 +132,7 @@ class PostController extends Controller
                 'author_id' => $userId,
             ]);
 
-            $post->tags()->sync($data['tags'] ?? []);
+            $post->tags()->sync($this->resolveTagIds($data['tags'] ?? [], $data['new_tags'] ?? []));
             $this->syncFeaturedMedia($post, $data['featured_media_id'] ?? null);
             $this->syncTranslations($post, $data['translations']);
         });
@@ -170,7 +173,7 @@ class PostController extends Controller
                 'category_id' => $data['category_id'] ?? null,
             ]);
 
-            $post->tags()->sync($data['tags'] ?? []);
+            $post->tags()->sync($this->resolveTagIds($data['tags'] ?? [], $data['new_tags'] ?? []));
             $this->syncFeaturedMedia($post, $data['featured_media_id'] ?? null);
             $this->syncTranslations($post, $data['translations']);
         });
@@ -291,9 +294,10 @@ class PostController extends Controller
     }
 
     /**
-     * @return array{id: int, title: string, typeName: string, typeSlug: string, status: ?string, author: string, updated_at: string, editUrl: string}
+     * @param  Collection<int, Language>  $languages  Bahasa aktif — dasar kolom status per-bahasa.
+     * @return array{id: int, title: string, typeName: string, typeSlug: string, statuses: array<int, array{code: string, label: string, status: ?string}>, author: string, updated_at: string, editUrl: string}
      */
-    private function toSummary(Post $post, int $currentLanguageId): array
+    private function toSummary(Post $post, int $currentLanguageId, Collection $languages): array
     {
         $translation = $post->translations->firstWhere('language_id', $currentLanguageId)
             ?? $post->translations->first();
@@ -306,11 +310,35 @@ class PostController extends Controller
             'title' => $translation !== null ? $translation->title : '(tanpa judul)',
             'typeName' => $typeTranslation !== null ? $typeTranslation->name : $post->type->slug,
             'typeSlug' => $post->type->slug,
-            'status' => $translation?->status?->value,
+            'statuses' => $this->statusesByLanguage($post, $languages),
             'author' => $post->author !== null ? $post->author->name : '-',
             'updated_at' => $post->updated_at?->toIso8601String() ?? '',
             'editUrl' => route('admin.posts.edit', $post->id),
         ];
+    }
+
+    /**
+     * Status translation post untuk TIAP bahasa aktif (mis. ID Published, EN
+     * Draft/belum diterjemahkan) — dipakai daftar admin untuk indikator
+     * "ID ● · EN ○" tanpa perlu ganti locale aktif.
+     *
+     * @param  Collection<int, Language>  $languages
+     * @return array<int, array{code: string, label: string, status: ?string}>
+     */
+    private function statusesByLanguage(Post $post, Collection $languages): array
+    {
+        return $languages
+            ->map(function (Language $language) use ($post): array {
+                $translation = $post->translations->firstWhere('language_id', $language->id);
+
+                return [
+                    'code' => $language->code,
+                    'label' => strtoupper($language->code),
+                    'status' => $translation?->status?->value,
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**
@@ -449,5 +477,65 @@ class PostController extends Controller
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * Gabungkan id tag yang sudah dipilih (`tags[]`) dengan tag baru yang
+     * diketik di editor (`new_tags[]`, create-on-type). Nama baru dicocokkan
+     * dahulu (case-insensitive, firstOrCreate) supaya tag yang sudah ada
+     * tidak diduplikasi; nama yang benar-benar baru membuat Tag baru.
+     *
+     * @param  list<int|string>  $existingIds
+     * @param  list<string>  $newTagNames
+     * @return list<int>
+     */
+    private function resolveTagIds(array $existingIds, array $newTagNames): array
+    {
+        $ids = array_map(fn (int|string $id): int => (int) $id, $existingIds);
+
+        $seenNames = [];
+
+        foreach ($newTagNames as $name) {
+            $name = trim($name);
+            $normalized = mb_strtolower($name);
+
+            if ($name === '' || in_array($normalized, $seenNames, true)) {
+                continue;
+            }
+
+            $seenNames[] = $normalized;
+            $ids[] = $this->findOrCreateTagIdByName($name);
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * Cari Tag yang salah satu translation-nya cocok $name (case-insensitive,
+     * bahasa apa pun) — bila tidak ada, buat Tag baru + TagTranslation dengan
+     * nama yang sama di SEMUA bahasa aktif (default aman karena create-on-type
+     * hanya mengetik satu nama, bukan per-bahasa; mengikuti pola
+     * TagController::syncTranslations, bukan skema baru).
+     */
+    private function findOrCreateTagIdByName(string $name): int
+    {
+        $existing = Tag::query()
+            ->whereHas('translations', fn ($q) => $q->whereRaw('LOWER(name) = ?', [mb_strtolower($name)]))
+            ->first();
+
+        if ($existing !== null) {
+            return $existing->id;
+        }
+
+        $tag = Tag::create(['slug' => ContentSlug::unique(Tag::class, $name)]);
+
+        foreach (Language::active()->get(['id']) as $language) {
+            $tag->translations()->create([
+                'language_id' => $language->id,
+                'name' => $name,
+            ]);
+        }
+
+        return $tag->id;
     }
 }

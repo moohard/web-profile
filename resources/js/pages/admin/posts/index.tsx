@@ -1,7 +1,8 @@
 import { Head, router } from '@inertiajs/react';
 import DataTable from '@/components/admin/data-table';
 import type { DataTableColumn } from '@/components/admin/data-table';
-import { Badge } from '@/components/ui/badge';
+import PostStatusIndicators from '@/components/admin/post-status-indicators';
+import type { PostLanguageStatus } from '@/components/admin/post-status-indicators';
 import { Button } from '@/components/ui/button';
 import {
     Select,
@@ -24,7 +25,8 @@ type PostSummary = {
     title: string;
     typeName: string;
     typeSlug: string;
-    status: string | null;
+    /** Status per-bahasa aktif (mis. ID Published, EN Draft) — lihat PostController::toSummary. */
+    statuses: PostLanguageStatus[];
     author: string;
     updated_at: string;
     editUrl: string;
@@ -93,15 +95,7 @@ export default function PostsIndex({
         {
             key: 'status',
             header: 'Status',
-            render: (row) => (
-                <Badge
-                    variant={
-                        row.status === 'Published' ? 'default' : 'secondary'
-                    }
-                >
-                    {row.status ?? '-'}
-                </Badge>
-            ),
+            render: (row) => <PostStatusIndicators statuses={row.statuses} />,
         },
         {
             key: 'author',

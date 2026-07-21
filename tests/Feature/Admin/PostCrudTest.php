@@ -60,7 +60,10 @@ it('Filter ?status menyaring post berdasarkan status', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->has('posts.data', 1)
-            ->where('posts.data.0.status', 'Draft')
+            // D5: filter tetap berdasar locale aktif, tapi payload kini mengirim
+            // status per-bahasa (statuses[]) — lihat PostStatusPerLanguageTest.
+            ->where('posts.data.0.statuses.0.code', 'id')
+            ->where('posts.data.0.statuses.0.status', 'Draft')
         );
 });
 

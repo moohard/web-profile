@@ -5,10 +5,10 @@ import { AiSuggestButton } from '@/components/admin/ai-suggest-button';
 import LanguageTabs from '@/components/admin/language-tabs';
 import type { LanguageOption } from '@/components/admin/language-tabs';
 import { RichTextEditor } from '@/components/admin/rich-text-editor';
+import TagPicker from '@/components/admin/tag-picker';
 import InputError from '@/components/input-error';
 import { MediaPicker } from '@/components/media/media-picker';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -77,6 +77,8 @@ type PostFormData = {
     type_id: number | null;
     category_id: number | null;
     tags: number[];
+    /** Nama tag baru yang diketik di editor (create-on-type) — lihat TagPicker. */
+    new_tags: string[];
     featured_media_id: number | null;
     translations: Record<number, TranslationFormState>;
 };
@@ -146,6 +148,7 @@ export default function PostForm({
         type_id: post?.type_id ?? contentTypes[0]?.id ?? null,
         category_id: post?.category_id ?? null,
         tags: post?.tag_ids ?? [],
+        new_tags: [],
         featured_media_id: post?.featured_media_id ?? null,
         translations: buildInitialTranslations(languages, post),
     });
@@ -177,15 +180,6 @@ export default function PostForm({
             ...form.data.translations,
             [languageId]: { ...current, ...patch },
         });
-    }
-
-    function toggleTag(tagId: number, checked: boolean) {
-        form.setData(
-            'tags',
-            checked
-                ? [...form.data.tags, tagId]
-                : form.data.tags.filter((id) => id !== tagId),
-        );
     }
 
     function submit(e: FormEvent) {
@@ -665,39 +659,19 @@ export default function PostForm({
 
                             <div className="space-y-1">
                                 <Label>Tag</Label>
-                                <div className="space-y-1 rounded-md border p-3">
-                                    {tags.length === 0 && (
-                                        <p className="text-sm text-muted-foreground">
-                                            Belum ada tag.
-                                        </p>
-                                    )}
-                                    {tags.map((tag) => (
-                                        <div
-                                            key={tag.id}
-                                            className="flex items-center gap-2"
-                                        >
-                                            <Checkbox
-                                                id={`post-tag-${tag.id}`}
-                                                checked={form.data.tags.includes(
-                                                    tag.id,
-                                                )}
-                                                onCheckedChange={(checked) =>
-                                                    toggleTag(
-                                                        tag.id,
-                                                        checked === true,
-                                                    )
-                                                }
-                                            />
-                                            <Label
-                                                htmlFor={`post-tag-${tag.id}`}
-                                                className="font-normal"
-                                            >
-                                                {tag.name}
-                                            </Label>
-                                        </div>
-                                    ))}
-                                </div>
+                                <TagPicker
+                                    options={tags}
+                                    selectedIds={form.data.tags}
+                                    newNames={form.data.new_tags}
+                                    onSelectedChange={(ids) =>
+                                        form.setData('tags', ids)
+                                    }
+                                    onNewNamesChange={(names) =>
+                                        form.setData('new_tags', names)
+                                    }
+                                />
                                 <InputError message={form.errors.tags} />
+                                <InputError message={form.errors.new_tags} />
                             </div>
 
                             <div className="space-y-1">

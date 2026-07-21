@@ -103,6 +103,30 @@ it('DELETE menghapus kategori tanpa post terkait', function () {
     expect(Category::find($category->id))->toBeNull();
 });
 
+it('GET /admin/categories mengirim parent_id anak untuk membangun tampilan hierarkis di klien', function () {
+    // D5(C): daftar admin kini dirender sebagai tree (indent) berdasarkan
+    // parent_id — dibangun di klien (categories/index.tsx). Test ini
+    // memastikan kontrak data yang dibutuhkan (parent_id + urutan sort_order)
+    // tetap terkirim dengan benar dari server.
+    $idLang = Language::idFor('id');
+    $parent = Category::factory()->withTranslation('id', $idLang, ['name' => 'Wisata'])->create(['sort_order' => 1]);
+    $child = Category::factory()->withTranslation('id', $idLang, ['name' => 'Pantai'])->create([
+        'parent_id' => $parent->id,
+        'sort_order' => 2,
+    ]);
+
+    $this->actingAs(categoryAdmin())
+        ->get('/admin/categories')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->has('categories', 2)
+            ->where('categories.0.id', $parent->id)
+            ->where('categories.0.parent_id', null)
+            ->where('categories.1.id', $child->id)
+            ->where('categories.1.parent_id', $parent->id)
+        );
+});
+
 it('User tanpa content-types.viewAny mendapat 403', function () {
     $user = User::factory()->create()->givePermissionTo('access-admin');
     $idLang = Language::idFor('id');

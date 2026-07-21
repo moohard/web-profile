@@ -34,6 +34,10 @@ class PostRequest extends FormRequest
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['integer', 'exists:tags,id'],
+            // D5(B): tag baru yang diketik di editor (create-on-type) — nama mentah,
+            // di-resolve/firstOrCreate ke Tag+TagTranslation oleh PostController.
+            'new_tags' => ['nullable', 'array'],
+            'new_tags.*' => ['string', 'max:255'],
             'featured_media_id' => ['nullable', 'integer', 'exists:media,id'],
             'translations' => ['required', 'array', 'min:1'],
             'translations.*.language_id' => ['required', 'integer', 'exists:languages,id'],
