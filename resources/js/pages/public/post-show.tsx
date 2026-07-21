@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge';
 import PublicLayout from '@/layouts/public-layout';
 import type { PublicLayoutSharedProps } from '@/layouts/public-layout';
 
@@ -8,6 +9,16 @@ type PostTranslationProp = {
     body: string | null;
     meta_title: string | null;
     meta_description: string | null;
+};
+
+type CategoryProp = {
+    slug: string;
+    name: string;
+};
+
+type TagProp = {
+    slug: string;
+    name: string;
 };
 
 type SeoProp = {
@@ -24,21 +35,37 @@ type SeoProp = {
 type PostShowProps = PublicLayoutSharedProps & {
     post: PostTranslationProp;
     contentType: { slug: string; name: string };
+    category: CategoryProp | null;
+    tags: TagProp[];
     seo: SeoProp;
     jsonLd?: Record<string, unknown>;
 };
 
 export default function PostShow(props: PostShowProps) {
-    const { post, contentType, seo, jsonLd, ...layoutProps } = props;
+    const { post, contentType, category, tags, seo, jsonLd, ...layoutProps } =
+        props;
 
     return (
         <PublicLayout {...layoutProps} {...seo} jsonLd={jsonLd}>
             <article className="prose">
-                <p className="text-sm text-muted-foreground">
-                    {contentType.name}
-                </p>
+                <div className="not-prose flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                    <span>{contentType.name}</span>
+                    {category && (
+                        <Badge variant="secondary">{category.name}</Badge>
+                    )}
+                </div>
                 <h1>{post.title}</h1>
                 <div dangerouslySetInnerHTML={{ __html: post.body ?? '' }} />
+
+                {tags.length > 0 && (
+                    <div className="not-prose mt-6 flex flex-wrap gap-2">
+                        {tags.map((tag) => (
+                            <Badge key={tag.slug} variant="outline">
+                                {tag.name}
+                            </Badge>
+                        ))}
+                    </div>
+                )}
             </article>
         </PublicLayout>
     );
