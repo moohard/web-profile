@@ -21,6 +21,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class PostController extends Controller
 {
@@ -126,11 +127,10 @@ class PostController extends Controller
                 'type_id' => $data['type_id'],
                 'category_id' => $data['category_id'] ?? null,
                 'author_id' => $userId,
-                'featured_image' => $data['featured_image'] ?? null,
             ]);
 
             $post->tags()->sync($data['tags'] ?? []);
-
+            $this->syncFeaturedMedia($post, $data['featured_media_id'] ?? null);
             $this->syncTranslations($post, $data['translations']);
         });
 
@@ -146,7 +146,7 @@ class PostController extends Controller
     {
         $this->authorize('update', $post);
 
-        $post->load(['translations', 'tags']);
+        $post->load(['translations', 'tags', 'media']);
 
         return Inertia::render('admin/posts/form', [
             'post' => $this->toFormArray($post),
@@ -168,11 +168,10 @@ class PostController extends Controller
             $post->update([
                 'type_id' => $data['type_id'],
                 'category_id' => $data['category_id'] ?? null,
-                'featured_image' => $data['featured_image'] ?? null,
             ]);
 
             $post->tags()->sync($data['tags'] ?? []);
-
+            $this->syncFeaturedMedia($post, $data['featured_media_id'] ?? null);
             $this->syncTranslations($post, $data['translations']);
         });
 
@@ -222,6 +221,30 @@ class PostController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Post berhasil dihapus permanen.']);
 
         return redirect()->route('admin.posts.trash');
+    }
+
+    /**
+     * Selaraskan gambar unggulan post ke koleksi media `featured` (singleFile).
+     * Media pilihan dari MediaPicker di-copy (bukan dipindah) ke koleksi post ini
+     * supaya media asal — bila kepunyaan model lain — tidak ikut berpindah/terhapus.
+     * No-op bila id yang dipilih sama dengan media featured yang sudah terpasang
+     * (mencegah duplikasi & regenerasi conversion setiap kali post disimpan ulang).
+     */
+    private function syncFeaturedMedia(Post $post, ?int $mediaId): void
+    {
+        $currentMediaId = $post->getFirstMedia('featured')?->id;
+
+        if ($mediaId === $currentMediaId) {
+            return;
+        }
+
+        if ($mediaId === null) {
+            $post->getFirstMedia('featured')?->delete();
+
+            return;
+        }
+
+        Media::findOrFail($mediaId)->copy($post, 'featured');
     }
 
     /**
@@ -291,17 +314,21 @@ class PostController extends Controller
     }
 
     /**
-     * @return array{id: int, type_id: int, category_id: ?int, featured_image: ?string, tag_ids: list<int>, translations: array<string, array{language_id: int, title: string, slug: string, body: ?string, status: string, published_at: ?string, meta_title: ?string, meta_description: ?string}>}
+     * @return array{id: int, type_id: int, category_id: ?int, featured_media_id: ?int, featured_media_url: ?string, tag_ids: list<int>, translations: array<string, array{language_id: int, title: string, slug: string, body: ?string, status: string, published_at: ?string, meta_title: ?string, meta_description: ?string}>}
      */
     private function toFormArray(Post $post): array
     {
         $languagesByCode = Language::active()->get(['id', 'code'])->keyBy('id');
+        $featuredMedia = $post->getFirstMedia('featured');
 
         return [
             'id' => $post->id,
             'type_id' => $post->type_id,
             'category_id' => $post->category_id,
-            'featured_image' => $post->featured_image,
+            'featured_media_id' => $featuredMedia?->id,
+            'featured_media_url' => $featuredMedia !== null
+                ? ($featuredMedia->hasGeneratedConversion('thumb') ? $featuredMedia->getUrl('thumb') : $featuredMedia->getUrl())
+                : null,
             'tag_ids' => array_values(
                 $post->tags->pluck('id')->map(fn ($id): int => (int) $id)->all(),
             ),

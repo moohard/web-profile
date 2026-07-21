@@ -34,7 +34,7 @@ class PostRequest extends FormRequest
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['integer', 'exists:tags,id'],
-            'featured_image' => ['nullable', 'string', 'max:2048'],
+            'featured_media_id' => ['nullable', 'integer', 'exists:media,id'],
             'translations' => ['required', 'array', 'min:1'],
             'translations.*.language_id' => ['required', 'integer', 'exists:languages,id'],
             'translations.*.title' => ['required', 'string', 'max:255'],

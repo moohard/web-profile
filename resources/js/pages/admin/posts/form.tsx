@@ -1,4 +1,5 @@
 import { Head, useForm } from '@inertiajs/react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { AiSuggestButton } from '@/components/admin/ai-suggest-button';
 import LanguageTabs from '@/components/admin/language-tabs';
@@ -53,7 +54,9 @@ type PostData = {
     id: number;
     type_id: number;
     category_id: number | null;
-    featured_image: string | null;
+    featured_media_id: number | null;
+    /** URL pratinjau (konversi `thumb`) — bukan bagian data yang disubmit. */
+    featured_media_url: string | null;
     tag_ids: number[];
     /** Keyed by kode bahasa (mis. 'id', 'en') — bukan language_id. */
     translations: Record<string, PostTranslationData>;
@@ -74,7 +77,7 @@ type PostFormData = {
     type_id: number | null;
     category_id: number | null;
     tags: number[];
-    featured_image: string;
+    featured_media_id: number | null;
     translations: Record<number, TranslationFormState>;
 };
 
@@ -143,9 +146,15 @@ export default function PostForm({
         type_id: post?.type_id ?? contentTypes[0]?.id ?? null,
         category_id: post?.category_id ?? null,
         tags: post?.tag_ids ?? [],
-        featured_image: post?.featured_image ?? '',
+        featured_media_id: post?.featured_media_id ?? null,
         translations: buildInitialTranslations(languages, post),
     });
+
+    // URL pratinjau gambar unggulan — hanya tampilan, bukan bagian data yang
+    // disubmit (submit memakai featured_media_id, lihat MediaPicker.onPick di bawah).
+    const [featuredPreviewUrl, setFeaturedPreviewUrl] = useState<string | null>(
+        post?.featured_media_url ?? null,
+    );
 
     // Error dari backend memakai key index-array `translations.{index}.field` —
     // dipetakan berdasarkan posisi di `languages` (submit selalu menyertakan
@@ -694,33 +703,35 @@ export default function PostForm({
                             <div className="space-y-1">
                                 <Label>Gambar unggulan</Label>
                                 <div className="space-y-2">
-                                    {form.data.featured_image && (
+                                    {featuredPreviewUrl && (
                                         <img
-                                            src={form.data.featured_image}
+                                            src={featuredPreviewUrl}
                                             alt="Pratinjau gambar unggulan"
                                             className="aspect-video w-full rounded-md border object-cover"
                                         />
                                     )}
                                     <div className="flex gap-2">
                                         <MediaPicker
-                                            onPick={(_mediaId, url) =>
+                                            onPick={(mediaId, url) => {
                                                 form.setData(
-                                                    'featured_image',
-                                                    url,
-                                                )
-                                            }
+                                                    'featured_media_id',
+                                                    mediaId,
+                                                );
+                                                setFeaturedPreviewUrl(url);
+                                            }}
                                         />
-                                        {form.data.featured_image && (
+                                        {featuredPreviewUrl && (
                                             <Button
                                                 type="button"
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() =>
+                                                onClick={() => {
                                                     form.setData(
-                                                        'featured_image',
-                                                        '',
-                                                    )
-                                                }
+                                                        'featured_media_id',
+                                                        null,
+                                                    );
+                                                    setFeaturedPreviewUrl(null);
+                                                }}
                                             >
                                                 Hapus
                                             </Button>
@@ -728,7 +739,7 @@ export default function PostForm({
                                     </div>
                                 </div>
                                 <InputError
-                                    message={form.errors.featured_image}
+                                    message={form.errors.featured_media_id}
                                 />
                             </div>
                         </div>
