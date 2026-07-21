@@ -63,22 +63,70 @@ type CategoryNode = {
 };
 
 /**
+ * Parent efektif kategori untuk keperluan pengelompokan tree: `null` bila
+ * `parent_id` aslinya tidak ada di daftar (induk sudah terhapus) ATAU
+ * membentuk SIKLUS (mis. A → B → A, tercapai lewat 2 edit form berurutan
+ * yang masing-masing sah — dropdown parent hanya exclude diri sendiri, tidak
+ * exclude ancestor). Kedua kasus diperlakukan sebagai level teratas — pola
+ * yang SAMA dengan penanganan induk-terhapus — supaya kategori tidak lenyap
+ * diam-diam dari daftar (silent data loss) dan anak sahnya (non-siklus)
+ * tetap ternestasi wajar di bawahnya (nyambung via `childrenByParent` yang
+ * tak diubah untuk id ini).
+ */
+function effectiveParentId(
+    category: Category,
+    byId: Map<number, Category>,
+): number | null {
+    if (category.parent_id === null || !byId.has(category.parent_id)) {
+        return null;
+    }
+
+    // Telusuri rantai parent DARI kategori ini. Hanya null-kan bila rantai
+    // kembali ke KATEGORI INI SENDIRI (berarti category adalah anggota
+    // siklus). Bila rantai bertemu id lain yang sudah dilihat SEBELUM balik
+    // ke diri sendiri, itu siklus di ANCESTOR lain (bukan melibatkan
+    // category ini) — parent tetap valid, cukup berhenti menelusuri (dan
+    // ancestor itu akan null-kan dirinya sendiri saat effectiveParentId
+    // dipanggil untuknya). Ini penting supaya anak SAH dari anggota siklus
+    // (bukan bagian siklus itu sendiri) tetap ternestasi benar, bukan ikut
+    // "terlempar" ke level teratas.
+    const seen = new Set<number>();
+    let current: Category | undefined = byId.get(category.parent_id);
+
+    while (current) {
+        if (current.id === category.id) {
+            return null; // category sendiri anggota siklus
+        }
+
+        if (seen.has(current.id)) {
+            break; // siklus terdeteksi, tapi bukan melibatkan `category`
+        }
+
+        seen.add(current.id);
+
+        if (current.parent_id === null || !byId.has(current.parent_id)) {
+            break; // rantai berakhir wajar di sebuah root
+        }
+
+        current = byId.get(current.parent_id);
+    }
+
+    return category.parent_id;
+}
+
+/**
  * Susun kategori flat (dengan `parent_id`) menjadi urutan tree: induk lalu
  * anak-anaknya tepat di bawahnya (diindentasi via `depth`), diurutkan
- * `sort_order` di setiap level. Kategori dengan `parent_id` yang tidak valid
- * (induk sudah terhapus) diperlakukan sebagai level teratas agar tidak
- * hilang dari daftar. Guard siklus mencegah rekursi tak berhenti bila data
- * `parent_id` korup (mis. A → B → A).
+ * `sort_order` di setiap level. Lihat `effectiveParentId` untuk penanganan
+ * induk-terhapus & siklus. Guard `ancestors` di `visit` tetap dipertahankan
+ * sebagai pertahanan kedua terhadap rekursi tak berhenti.
  */
 function buildCategoryTree(categories: Category[]): CategoryNode[] {
-    const idsInList = new Set(categories.map((c) => c.id));
+    const byId = new Map(categories.map((c) => [c.id, c]));
     const childrenByParent = new Map<number | null, Category[]>();
 
     for (const category of categories) {
-        const parentId =
-            category.parent_id !== null && idsInList.has(category.parent_id)
-                ? category.parent_id
-                : null;
+        const parentId = effectiveParentId(category, byId);
         const siblings = childrenByParent.get(parentId) ?? [];
         siblings.push(category);
         childrenByParent.set(parentId, siblings);

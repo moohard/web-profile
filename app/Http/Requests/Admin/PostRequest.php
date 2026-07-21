@@ -36,7 +36,9 @@ class PostRequest extends FormRequest
             'tags.*' => ['integer', 'exists:tags,id'],
             // D5(B): tag baru yang diketik di editor (create-on-type) — nama mentah,
             // di-resolve/firstOrCreate ke Tag+TagTranslation oleh PostController.
-            'new_tags' => ['nullable', 'array'],
+            // max:20 — cegah satu request mengirim ratusan/ribuan nama sekaligus
+            // (taksonomi tags bersifat GLOBAL, dipakai lintas post/author).
+            'new_tags' => ['nullable', 'array', 'max:20'],
             'new_tags.*' => ['string', 'max:255'],
             'featured_media_id' => ['nullable', 'integer', 'exists:media,id'],
             'translations' => ['required', 'array', 'min:1'],

@@ -152,3 +152,40 @@ it('new_tags kosong atau tidak dikirim tidak membuat tag apa pun', function () {
     $post = Post::query()->latest('id')->first();
     expect($post->tags)->toBeEmpty();
 });
+
+it('new_tags lebih dari 20 item ditolak validasi (cegah abuse taksonomi global)', function () {
+    $tooMany = array_map(fn (int $i): string => "Tag {$i}", range(1, 21));
+
+    $this->actingAs(tagCreateOnTypeAdmin())
+        ->post('/admin/posts', [
+            'type_id' => $this->type->id,
+            'new_tags' => $tooMany,
+            'translations' => [[
+                'language_id' => $this->idLang,
+                'title' => 'Judul terlalu banyak tag baru',
+                'status' => 'Draft',
+            ]],
+        ])
+        ->assertSessionHasErrors('new_tags');
+
+    expect(Tag::query()->count())->toBe(0);
+});
+
+it('new_tags tepat 20 item (batas atas) masih diterima', function () {
+    $exactlyTwenty = array_map(fn (int $i): string => "Tag {$i}", range(1, 20));
+
+    $this->actingAs(tagCreateOnTypeAdmin())
+        ->post('/admin/posts', [
+            'type_id' => $this->type->id,
+            'new_tags' => $exactlyTwenty,
+            'translations' => [[
+                'language_id' => $this->idLang,
+                'title' => 'Judul dua puluh tag baru',
+                'status' => 'Draft',
+            ]],
+        ])
+        ->assertSessionDoesntHaveErrors('new_tags')
+        ->assertRedirect();
+
+    expect(Tag::query()->count())->toBe(20);
+});
