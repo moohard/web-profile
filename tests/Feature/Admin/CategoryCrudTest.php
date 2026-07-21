@@ -92,6 +92,22 @@ it('DELETE ditolak bila kategori masih memiliki post', function () {
     expect(Category::find($category->id))->not->toBeNull();
 });
 
+it('DELETE ditolak bila kategori masih memiliki post yang sudah di-trash (soft-deleted)', function () {
+    // Post trashed pun MENGUNCI penghapusan kategori (sampai di-forceDelete)
+    // demi menjaga garansi restore — lihat catatan di ContentTypeCrudTest.
+    $idLang = Language::idFor('id');
+    $category = Category::factory()->withTranslation('id', $idLang)->create();
+    $type = ContentType::where('slug', 'berita')->first();
+    $post = Post::factory()->create(['type_id' => $type->id, 'category_id' => $category->id]);
+    $post->delete();
+
+    $this->actingAs(categoryAdmin())
+        ->delete("/admin/categories/{$category->id}")
+        ->assertRedirect();
+
+    expect(Category::find($category->id))->not->toBeNull();
+});
+
 it('DELETE menghapus kategori tanpa post terkait', function () {
     $idLang = Language::idFor('id');
     $category = Category::factory()->withTranslation('id', $idLang)->create();

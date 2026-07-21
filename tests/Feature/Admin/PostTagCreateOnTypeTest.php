@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\UserRole;
 use App\Models\ContentType;
 use App\Models\Language;
 use App\Models\Post;
@@ -188,4 +189,40 @@ it('new_tags tepat 20 item (batas atas) masih diterima', function () {
         ->assertRedirect();
 
     expect(Tag::query()->count())->toBe(20);
+});
+
+// Keputusan otorisasi lintas-policy (DISENGAJA) — lihat komentar
+// PostController::findOrCreateTagIdByName. Author TIDAK punya permission
+// `content-types.create` (RolePermissionSeeder: Author hanya diberi
+// access-admin + media.* + posts.viewAny/create/update/deleteOwn), jadi tak
+// akan lolos TagPolicy::create bila create-on-type diotorisasi lewat sana.
+// Test ini membuktikan create-on-type memang TIDAK lewat TagPolicy — cukup
+// lolos PostPolicy::create (Author boleh membuat post) agar penulis bisa
+// membuat tag baru inline saat menulis post miliknya sendiri.
+it('Author (bukan Admin) membuat post miliknya dengan new_tags — tag baru tetap tercipta & tertaut', function () {
+    $author = User::factory()->create()->assignRole(UserRole::Author->value);
+    expect($author->can('create', Tag::class))->toBeFalse();
+
+    $this->actingAs($author)
+        ->post('/admin/posts', [
+            'type_id' => $this->type->id,
+            'new_tags' => ['Kuliner'],
+            'translations' => [[
+                'language_id' => $this->idLang,
+                'title' => 'Judul post kuliner oleh author',
+                'status' => 'Draft',
+            ]],
+        ])
+        ->assertRedirect();
+
+    $tag = Tag::query()->where('slug', 'kuliner')->first();
+    expect($tag)->not->toBeNull();
+
+    // latest('id') — bukan firstOrFail() — karena DemoPostSeeder (dijalankan
+    // via $this->seed() di beforeEach) sudah membuat 1 post lebih dulu (id
+    // lebih kecil); post yang baru dibuat lewat request ini selalu id terbesar.
+    $post = Post::query()->latest('id')->first();
+    expect($post->author_id)->toBe($author->id)
+        ->and($post->tags->pluck('id')->all())->toBe([$tag->id])
+        ->and($tag->translations()->where('language_id', $this->idLang)->value('name'))->toBe('Kuliner');
 });

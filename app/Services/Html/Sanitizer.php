@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Html;
 
+use App\Enums\PageMode;
 use Stevebauman\Purify\Facades\Purify;
 
 class Sanitizer
@@ -30,5 +31,17 @@ class Sanitizer
         $cleaned = Purify::config('default')->clean($html);
 
         return is_string($cleaned) ? $cleaned : '';
+    }
+
+    /**
+     * Bersihkan HTML sesuai mode Page — menyatukan logika pemilihan profil
+     * yang sebelumnya terduplikasi verbatim di Admin\PageController (saat
+     * simpan) & Public\PageController (saat tampil, defense-in-depth), supaya
+     * kedua sisi tidak bisa silent-drift satu sama lain. Code (markup bebas)
+     * pakai profil cms_page; Template (editor Tiptap) pakai profil rich-text.
+     */
+    public function cleanForPageMode(string $html, PageMode $mode): string
+    {
+        return $mode === PageMode::Code ? $this->clean($html) : $this->cleanRichText($html);
     }
 }

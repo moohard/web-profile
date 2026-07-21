@@ -18,7 +18,7 @@ class PublicPathResolver
      * @return array{kind: 'home'}
      *                             | array{kind: 'archive', contentType: ContentType}
      *                             | array{kind: 'single', post: \App\Models\Post, translation: PostTranslation, contentType: ContentType}
-     *                             | array{kind: 'page', page: \App\Models\Page, translation: PageTranslation}
+     *                             | array{kind: 'page', page: ?\App\Models\Page, translation: PageTranslation}
      *                             | array{kind: 'notFound'}
      */
     public static function resolve(string $path): array

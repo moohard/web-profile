@@ -103,7 +103,9 @@ class TagController extends Controller
     {
         $this->authorize('delete', $tag);
 
-        if ($tag->posts()->exists()) {
+        // withTrashed(): post yang sudah di-soft-delete pun MENGUNCI penghapusan
+        // (sampai di-forceDelete) — demi menjaga garansi restore post tersebut.
+        if ($tag->posts()->withTrashed()->exists()) {
             Inertia::flash('toast', ['type' => 'error', 'message' => 'Tag tidak bisa dihapus karena masih terhubung ke post.']);
 
             return back();

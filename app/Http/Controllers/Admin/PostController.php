@@ -516,6 +516,16 @@ class PostController extends Controller
      * nama yang sama di SEMUA bahasa aktif (default aman karena create-on-type
      * hanya mengetik satu nama, bukan per-bahasa; mengikuti pola
      * TagController::syncTranslations, bukan skema baru).
+     *
+     * Keputusan otorisasi (DISENGAJA): pembuatan Tag di sini TIDAK lewat
+     * TagPolicy::create (butuh permission `content-types.create`, yang hanya
+     * dimiliki Admin — Editor & Author pun tidak punya). Otorisasi method ini
+     * ikut PostPolicy::create/update (via PostRequest::authorize()) yang sudah
+     * dijalankan sebelum controller method store()/update() dipanggil — supaya
+     * siapa pun yang berhak menulis post (termasuk Author, atas post miliknya)
+     * bisa membuat tag baru inline saat mengetik, tanpa perlu capability
+     * taksonomi terpisah. Batas abuse dijaga validasi `new_tags` `max:20`
+     * (PostRequest) — bukan oleh TagPolicy.
      */
     private function findOrCreateTagIdByName(string $name): int
     {

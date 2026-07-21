@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Public;
 
-use App\Enums\PageMode;
 use App\Http\Controllers\Controller;
 use App\Models\Page;
 use App\Models\PageTranslation;
@@ -33,13 +32,10 @@ class PageController extends Controller
 
         // Defense-in-depth: sanitasi HTML sebelum dikirim ke frontend (dirender via
         // dangerouslySetInnerHTML di page-show.tsx). Profil ikut mode halaman, sama
-        // seperti saat disimpan: Template → rich-text (default); Code → cms_page.
+        // seperti saat disimpan — lihat Sanitizer::cleanForPageMode.
         $content = $translation->content;
         if (is_array($content) && isset($content['html']) && is_string($content['html'])) {
-            $sanitizer = app(Sanitizer::class);
-            $content['html'] = $page->mode === PageMode::Code
-                ? $sanitizer->clean($content['html'])
-                : $sanitizer->cleanRichText($content['html']);
+            $content['html'] = app(Sanitizer::class)->cleanForPageMode($content['html'], $page->mode);
             $translation->content = $content;
         }
 

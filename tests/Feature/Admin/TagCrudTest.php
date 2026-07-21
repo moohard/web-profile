@@ -90,6 +90,23 @@ it('DELETE ditolak bila tag masih terhubung ke post', function () {
     expect(Tag::find($tag->id))->not->toBeNull();
 });
 
+it('DELETE ditolak bila tag masih terhubung ke post yang sudah di-trash (soft-deleted)', function () {
+    // Post trashed pun MENGUNCI penghapusan tag (sampai di-forceDelete) demi
+    // menjaga garansi restore — lihat catatan di ContentTypeCrudTest.
+    $idLang = Language::idFor('id');
+    $tag = Tag::factory()->withTranslation('id', $idLang)->create();
+    $type = ContentType::where('slug', 'berita')->first();
+    $post = Post::factory()->create(['type_id' => $type->id]);
+    $post->tags()->attach($tag->id);
+    $post->delete();
+
+    $this->actingAs(tagAdmin())
+        ->delete("/admin/tags/{$tag->id}")
+        ->assertRedirect();
+
+    expect(Tag::find($tag->id))->not->toBeNull();
+});
+
 it('DELETE menghapus tag tanpa post terkait', function () {
     $idLang = Language::idFor('id');
     $tag = Tag::factory()->withTranslation('id', $idLang)->create();

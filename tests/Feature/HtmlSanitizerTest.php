@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\PageMode;
 use App\Services\Html\Sanitizer;
 
 it('Sanitizer membuang script tag', function () {
@@ -92,4 +93,26 @@ it('cleanRichText berbeda dari clean — tag berbasis class (mis. div) di luar p
     expect($richText)->not->toContain('<div')
         ->and($richText)->toContain('Penting')
         ->and($cmsPage)->toContain('<div class="callout">');
+});
+
+// --- cleanForPageMode() — menyatukan ternary mode Code/Template yang
+// sebelumnya terduplikasi verbatim di Admin\PageController & Public\PageController ---
+
+it('cleanForPageMode mode Code memakai profil cms_page (pertahankan div, buang script)', function () {
+    $html = '<div class="callout">Penting</div><script>alert(1)</script>';
+
+    $clean = app(Sanitizer::class)->cleanForPageMode($html, PageMode::Code);
+
+    expect($clean)->toContain('<div class="callout">')
+        ->and($clean)->not->toContain('<script>');
+});
+
+it('cleanForPageMode mode Template memakai profil rich-text (buang div, pertahankan heading)', function () {
+    $html = '<div class="callout">Penting</div><h2>Judul</h2>';
+
+    $clean = app(Sanitizer::class)->cleanForPageMode($html, PageMode::Template);
+
+    expect($clean)->not->toContain('<div')
+        ->and($clean)->toContain('Penting')
+        ->and($clean)->toContain('<h2>Judul</h2>');
 });

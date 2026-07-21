@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Models\ContentType;
 use App\Models\Language;
 use App\Models\Page;
