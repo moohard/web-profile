@@ -7,6 +7,7 @@ namespace App\Http\Requests\Admin;
 use App\Enums\PostStatus;
 use App\Models\Language;
 use App\Models\Post;
+use App\Services\Html\Sanitizer;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -36,7 +37,7 @@ class PostRequest extends FormRequest
             'tags.*' => ['integer', 'exists:tags,id'],
             'featured_image' => ['nullable', 'string', 'max:2048'],
             'translations' => ['required', 'array', 'min:1'],
-            'translations.*.language_id' => ['required', 'integer', 'exists:languages,id'],
+            'translations.*.language_id' => ['required', 'integer', 'distinct', 'exists:languages,id'],
             'translations.*.title' => ['nullable', 'string', 'max:255'],
             'translations.*.slug' => ['nullable', 'string', 'max:255'],
             'translations.*.body' => ['nullable', 'string'],
@@ -56,6 +57,7 @@ class PostRequest extends FormRequest
             /** @var list<array{language_id?: int|string, title?: ?string, body?: ?string, status?: ?string}> $translations */
             $translations = (array) $this->input('translations', []);
             $defaultLanguageId = Language::defaultModel()->id;
+            $sanitizer = app(Sanitizer::class);
 
             $defaultTranslationIndex = collect($translations)->search(
                 fn (array $translation): bool => (int) ($translation['language_id'] ?? 0) === $defaultLanguageId,
@@ -86,7 +88,10 @@ class PostRequest extends FormRequest
                     );
                 }
 
-                if (! filled($translation['body'] ?? null)) {
+                $body = $translation['body'] ?? null;
+                $sanitizedBody = is_string($body) ? $sanitizer->clean($body) : null;
+
+                if (! filled($sanitizedBody)) {
                     $validator->errors()->add(
                         "translations.{$index}.body",
                         'Konten wajib diisi untuk translation Published.',

@@ -163,6 +163,41 @@ it('translation Published wajib memiliki title dan body', function () {
     ]);
 });
 
+it('validasi menolak language_id translation yang duplikat', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [
+            [
+                'language_id' => $this->idLang,
+                'title' => 'Judul Valid',
+                'status' => 'Draft',
+            ],
+            [
+                'language_id' => $this->idLang,
+                'title' => '',
+                'body' => '<p>Menimpa judul</p>',
+                'status' => 'Draft',
+            ],
+        ],
+    ])->assertSessionHasErrors('translations.1.language_id');
+
+    expect(PostTranslation::query()->where('title', 'Judul Valid')->exists())->toBeFalse();
+});
+
+it('translation Published menolak body yang kosong setelah sanitasi', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [[
+            'language_id' => $this->idLang,
+            'title' => 'Konten Tidak Aman',
+            'body' => '<script>alert(1)</script>',
+            'status' => 'Published',
+        ]],
+    ])->assertSessionHasErrors('translations.0.body');
+
+    expect(PostTranslation::query()->where('title', 'Konten Tidak Aman')->exists())->toBeFalse();
+});
+
 it('translation Draft kosong selain bahasa default diabaikan', function () {
     $this->actingAs(editorAdmin())->post('/admin/posts', [
         'type_id' => $this->type->id,
