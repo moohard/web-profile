@@ -40,7 +40,10 @@ class Language extends Model
      */
     public function scopeActive(Builder $query): Builder
     {
-        return $query->where('is_active', true)->orderBy('sort_order');
+        return $query
+            ->where('is_active', true)
+            ->orderByDesc('is_default')
+            ->orderBy('sort_order');
     }
 
     /**
@@ -79,14 +82,43 @@ class Language extends Model
         return static::where('code', app()->getLocale())->first() ?? static::defaultModel();
     }
 
+    public function isInUse(): bool
+    {
+        $translationModels = [
+            CategoryTranslation::class,
+            ContentTypeTranslation::class,
+            GalleryImageTranslation::class,
+            GalleryTranslation::class,
+            MenuItemTranslation::class,
+            PageTranslation::class,
+            PostTranslation::class,
+            RatingCriterionTranslation::class,
+            SettingTranslation::class,
+            TagTranslation::class,
+            WidgetTranslation::class,
+        ];
+
+        foreach ($translationModels as $translationModel) {
+            if ($translationModel::query()->where('language_id', $this->id)->exists()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * Reset cache bahasa secara selektif — panggil setelah seeder / perubahan tabel languages.
      * Hanya menghapus key milik model ini (tidak Cache::flush global) agar cache lain aman.
      */
-    public static function flushCache(): void
+    public static function flushCache(?string $previousCode = null): void
     {
         Cache::forget('language.default_code');
         Cache::forget('language.default');
+
+        if ($previousCode !== null) {
+            Cache::forget("language.id_for.{$previousCode}");
+        }
 
         // Hapus key id_for.{code} untuk seluruh kode yang saat ini ada di tabel.
         foreach (static::query()->pluck('code') as $code) {

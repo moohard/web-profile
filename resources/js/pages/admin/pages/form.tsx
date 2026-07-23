@@ -4,6 +4,8 @@ import type { FormEvent } from 'react';
 import { AiSuggestButton } from '@/components/admin/ai-suggest-button';
 import LanguageTabs from '@/components/admin/language-tabs';
 import type { LanguageOption } from '@/components/admin/language-tabs';
+import { PagePreviewDialog } from '@/components/admin/page-preview-dialog';
+import { RichTextEditor } from '@/components/admin/rich-text-editor';
 import InputError from '@/components/input-error';
 import { MediaPicker } from '@/components/media/media-picker';
 import { Button } from '@/components/ui/button';
@@ -18,7 +20,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { dashboard } from '@/routes/admin';
-import { markupConform } from '@/routes/admin/ai';
+import * as aiRoutes from '@/routes/admin/ai';
 import pagesRoutes, { index as pagesIndex } from '@/routes/admin/pages';
 
 type TemplateOption = {
@@ -122,6 +124,7 @@ export default function PageForm({
     templateOptions: TemplateOption[];
 }) {
     const isEditing = page !== null;
+    const defaultLanguage = languages[0];
     const [activeLanguageId, setActiveLanguageId] = useState<number>(
         languages[0]?.id ?? 0,
     );
@@ -370,7 +373,7 @@ export default function PageForm({
                                                     {canUseCodeMode && (
                                                         <AiSuggestButton
                                                             label="Sesuaikan markup (AI)"
-                                                            endpoint={markupConform.url()}
+                                                            endpoint={aiRoutes.markupConform.url()}
                                                             payload={() => ({
                                                                 source_html:
                                                                     t.content,
@@ -392,10 +395,89 @@ export default function PageForm({
                                                     )}
                                                 </div>
                                             ) : (
-                                                <p className="text-sm text-muted-foreground">
-                                                    Konten halaman ini mengikuti
-                                                    template yang dipilih.
-                                                </p>
+                                                <div className="space-y-2">
+                                                    <Label
+                                                        htmlFor={`page-content-${lang.id}`}
+                                                    >
+                                                        Konten ({lang.code})
+                                                    </Label>
+                                                    <RichTextEditor
+                                                        id={`page-content-${lang.id}`}
+                                                        value={t.content}
+                                                        onChange={(content) =>
+                                                            updateTranslation(
+                                                                lang.id,
+                                                                { content },
+                                                            )
+                                                        }
+                                                        ariaLabel={`Konten halaman dalam ${lang.name}`}
+                                                    />
+                                                    <InputError
+                                                        message={fieldError(
+                                                            'content',
+                                                        )}
+                                                    />
+                                                    <div className="flex flex-wrap gap-2 pt-1">
+                                                        {defaultLanguage && (
+                                                            <AiSuggestButton
+                                                                label="Terjemahkan dengan AI"
+                                                                endpoint={aiRoutes.translate.url()}
+                                                                payload={() => ({
+                                                                    source_text:
+                                                                        form
+                                                                            .data
+                                                                            .translations[
+                                                                            defaultLanguage
+                                                                                .id
+                                                                        ]
+                                                                            ?.content ??
+                                                                        '',
+                                                                    source_locale:
+                                                                        defaultLanguage.code,
+                                                                    target_locale:
+                                                                        lang.code,
+                                                                })}
+                                                                onAccept={(
+                                                                    content,
+                                                                ) =>
+                                                                    updateTranslation(
+                                                                        lang.id,
+                                                                        {
+                                                                            content,
+                                                                        },
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    !form.data
+                                                                        .translations[
+                                                                        defaultLanguage
+                                                                            .id
+                                                                    ]?.content
+                                                                }
+                                                            />
+                                                        )}
+                                                        <AiSuggestButton
+                                                            label="Koreksi dengan AI"
+                                                            endpoint={aiRoutes.refine.url()}
+                                                            payload={() => ({
+                                                                source_text:
+                                                                    t.content,
+                                                            })}
+                                                            onAccept={(
+                                                                content,
+                                                            ) =>
+                                                                updateTranslation(
+                                                                    lang.id,
+                                                                    { content },
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                t.content.trim() ===
+                                                                ''
+                                                            }
+                                                        />
+                                                    </div>
+                                                </div>
                                             )}
                                         </div>
                                     );
@@ -595,6 +677,24 @@ export default function PageForm({
                                 </Label>
                             </div>
 
+                            <div className="space-y-1 rounded-md border p-3">
+                                <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        id="page-add-to-menu"
+                                        disabled
+                                    />
+                                    <Label
+                                        htmlFor="page-add-to-menu"
+                                        className="font-normal text-muted-foreground"
+                                    >
+                                        Tambahkan ke menu
+                                    </Label>
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    Akan aktif setelah integrasi Menu tersedia.
+                                </p>
+                            </div>
+
                             {activeTranslation && (
                                 <div className="space-y-3 rounded-md border p-3">
                                     <p className="text-sm font-medium text-muted-foreground">
@@ -717,11 +817,23 @@ export default function PageForm({
                         </div>
                     </div>
 
-                    <div className="flex gap-2">
-                        <Button type="submit" disabled={form.processing}>
-                            {form.processing ? 'Menyimpan…' : 'Simpan'}
-                        </Button>
-                        <Button variant="outline" asChild>
+                        <div className="flex gap-2">
+                            <Button type="submit" disabled={form.processing}>
+                                {form.processing ? 'Menyimpan…' : 'Simpan'}
+                            </Button>
+                            {activeTranslation && (
+                                <PagePreviewDialog
+                                    endpoint={pagesRoutes.preview.url()}
+                                    payload={() => ({
+                                        mode: form.data.mode,
+                                        template_key:
+                                            form.data.template_key,
+                                        title: activeTranslation.title,
+                                        content: activeTranslation.content,
+                                    })}
+                                />
+                            )}
+                            <Button variant="outline" asChild>
                             <a href={pagesRoutes.index.url()}>Batal</a>
                         </Button>
                     </div>

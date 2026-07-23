@@ -1,5 +1,6 @@
 <?php
 
+use App\Actions\Languages\SaveLanguage;
 use App\Models\Language;
 use App\Models\Page;
 use App\Models\PageTranslation;
@@ -11,25 +12,57 @@ beforeEach(function () {
     Language::flushCache();
 });
 
-it('Publik layout mengirim props region, menu, dan locales', function () {
+it('Publik layout mengirim props region, menu, dan localeLinks dari server', function () {
     $this->get('/')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('public/home')
             ->has('locale')
-            ->has('locales')
+            ->has('localeLinks', 2)
             ->has('headerMenu')
             ->has('footerMenu')
             ->has('region.widgets.beforeContent')
             ->has('region.widgets.afterContent')
             ->has('region.widgets.sidebar')
             ->has('region.widgets.footer')
-            ->where('locales', function ($locales) {
-                $names = collect($locales)->pluck('name')->all();
+            ->where('localeLinks.0.code', 'id')
+            ->where('localeLinks.0.url', '/')
+            ->where('localeLinks.0.isCurrent', true)
+            ->where('localeLinks.0.isAvailable', true)
+            ->where('localeLinks.1.code', 'en')
+            ->where('localeLinks.1.url', '/en')
+            ->where('localeLinks.1.isAvailable', true)
+            ->where('seo.canonical', 'http://localhost')
+            ->where('seo.hreflang.id', 'http://localhost')
+            ->where('seo.hreflang.en', 'http://localhost/en')
+            ->where('seo.hreflang.x-default', 'http://localhost')
+        );
+});
 
-                return in_array('Bahasa Indonesia', $names, true)
-                    && in_array('English', $names, true);
-            })
+it('SEO beranda mengikuti locale aktif dan perubahan bahasa default', function () {
+    $this->get('/en')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('seo.canonical', 'http://localhost/en')
+            ->where('seo.hreflang.id', 'http://localhost')
+            ->where('seo.hreflang.en', 'http://localhost/en')
+            ->where('seo.hreflang.x-default', 'http://localhost')
+        );
+
+    $english = Language::query()->where('code', 'en')->firstOrFail();
+    app(SaveLanguage::class)->handle([
+        'code' => 'en',
+        'name' => 'English',
+        'is_active' => true,
+        'is_default' => true,
+        'sort_order' => 2,
+    ], $english);
+
+    $this->get('/')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('seo.canonical', 'http://localhost')
+            ->where('seo.hreflang.x-default', 'http://localhost')
         );
 });
 

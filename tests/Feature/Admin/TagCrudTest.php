@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\UserRole;
 use App\Models\ContentType;
 use App\Models\Language;
 use App\Models\Post;
@@ -34,6 +35,37 @@ it('GET /admin/tags menampilkan daftar tag untuk admin', function () {
             ->has('tags', 1)
             ->has('languages')
         );
+});
+
+it('Editor dapat mengelola tag', function () {
+    $editor = User::factory()->create()->assignRole(UserRole::Editor->value);
+    $idLang = Language::idFor('id');
+
+    $this->actingAs($editor)
+        ->get('/admin/tags')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('admin/tags/index'));
+
+    $this->actingAs($editor)
+        ->post('/admin/tags', [
+            'translations' => [['language_id' => $idLang, 'name' => 'Tag Editor']],
+        ])
+        ->assertRedirect();
+
+    $tag = Tag::query()->where('slug', 'tag-editor')->firstOrFail();
+
+    $this->actingAs($editor)
+        ->put("/admin/tags/{$tag->id}", [
+            'slug' => 'tag-editor-baru',
+            'translations' => [['language_id' => $idLang, 'name' => 'Tag Editor Baru']],
+        ])
+        ->assertRedirect();
+
+    $this->actingAs($editor)
+        ->delete("/admin/tags/{$tag->id}")
+        ->assertRedirect();
+
+    expect(Tag::find($tag->id))->toBeNull();
 });
 
 it('POST /admin/tags membuat tag beserta translation per bahasa', function () {
@@ -101,7 +133,7 @@ it('DELETE menghapus tag tanpa post terkait', function () {
     expect(Tag::find($tag->id))->toBeNull();
 });
 
-it('User tanpa content-types.viewAny mendapat 403', function () {
+it('User tanpa tags permissions mendapat 403', function () {
     $user = User::factory()->create()->givePermissionTo('access-admin');
     $idLang = Language::idFor('id');
     $tag = Tag::factory()->withTranslation('id', $idLang)->create();
@@ -114,4 +146,62 @@ it('User tanpa content-types.viewAny mendapat 403', function () {
         'translations' => [['language_id' => $idLang, 'name' => 'X']],
     ])->assertForbidden();
     $this->actingAs($user)->delete("/admin/tags/{$tag->id}")->assertForbidden();
+});
+
+it('quick-create membuat tag, mengembalikan JSON, dan memakai kembali nama duplikat case-insensitive', function () {
+    $editor = User::factory()->create()->assignRole(UserRole::Editor->value);
+    $languageId = Language::idFor('id');
+
+    $first = $this->actingAs($editor)->postJson('/admin/tags/quick-store', [
+        'language_id' => $languageId,
+        'name' => '  Transformasi Digital  ',
+    ]);
+
+    $first->assertCreated()
+        ->assertJsonPath('name', 'Transformasi Digital')
+        ->assertJsonPath('created', true);
+
+    $second = $this->actingAs($editor)->postJson('/admin/tags/quick-store', [
+        'language_id' => $languageId,
+        'name' => 'transformasi digital',
+    ]);
+
+    $second->assertOk()
+        ->assertJsonPath('id', $first->json('id'))
+        ->assertJsonPath('created', false);
+
+    expect(TagTranslation::query()
+        ->where('language_id', $languageId)
+        ->whereRaw('lower(name) = ?', ['transformasi digital'])
+        ->count())->toBe(1);
+});
+
+it('quick-create memerlukan permission tags.create dan bahasa aktif', function () {
+    $user = User::factory()->create()->givePermissionTo('access-admin');
+    $inactiveLanguage = Language::factory()->create([
+        'code' => 'fr',
+        'name' => 'Français',
+        'is_active' => false,
+    ]);
+
+    $this->actingAs($user)->postJson('/admin/tags/quick-store', [
+        'language_id' => Language::idFor('id'),
+        'name' => 'Ditolak',
+    ])->assertForbidden();
+
+    $editor = User::factory()->create()->assignRole(UserRole::Editor->value);
+    $this->actingAs($editor)->postJson('/admin/tags/quick-store', [
+        'language_id' => $inactiveLanguage->id,
+        'name' => 'Tidak aktif',
+    ])->assertUnprocessable()->assertJsonValidationErrors('language_id');
+});
+
+it('quick-create mengunci baris bahasa stabil dan mengulang transaksi saat deadlock', function () {
+    $source = file_get_contents(app_path('Actions/Tags/FindOrCreateTag.php'));
+
+    expect($source)
+        ->toContain('Language::query()')
+        ->toContain('->orderBy(\'id\')')
+        ->toContain('->lockForUpdate()')
+        ->toContain('attempts: 3');
 });

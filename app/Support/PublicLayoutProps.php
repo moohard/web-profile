@@ -24,40 +24,46 @@ use Illuminate\Support\Facades\Cache;
  */
 class PublicLayoutProps
 {
+    public static function flushCache(): void
+    {
+        foreach (Language::query()->pluck('id') as $languageId) {
+            Cache::forget("public_layout.{$languageId}");
+        }
+    }
+
     /**
      * Props global untuk seluruh halaman publik (cache 1 jam per bahasa).
      * Menu & locale tidak bergantung konteks halaman, jadi aman di-cache.
      *
+     * @param  list<array{code: string, name: string, url: ?string, isCurrent: bool, isAvailable: bool}>  $localeLinks
      * @return array{
      *     locale: string,
-     *     locales: array<int, array{code: string, name: string}>,
+     *     homeUrl: string,
+     *     localeLinks: list<array{code: string, name: string, url: ?string, isCurrent: bool, isAvailable: bool}>,
      *     headerMenu: array<int, array<string, mixed>>,
      *     footerMenu: array<int, array<string, mixed>>
      * }
      */
-    public static function base(): array
+    public static function base(array $localeLinks): array
     {
         $langId = Language::current()->id;
 
-        return Cache::remember("public_layout.{$langId}", now()->addHour(), function () use ($langId) {
+        $cached = Cache::remember("public_layout.{$langId}", now()->addHour(), function () use ($langId) {
             $headerMenu = self::resolveMenu(MenuLocation::Header, $langId);
             $footerMenu = self::resolveMenu(MenuLocation::Footer, $langId);
-            $locales = Language::active()
-                ->get(['code', 'name'])
-                ->map(fn (Language $lang) => [
-                    'code' => $lang->code,
-                    'name' => $lang->name,
-                ])
-                ->values()
-                ->all();
 
             return [
                 'locale' => app()->getLocale(),
-                'locales' => $locales,
+                'homeUrl' => LocaleUrl::for(app()->getLocale(), '/'),
                 'headerMenu' => $headerMenu,
                 'footerMenu' => $footerMenu,
             ];
         });
+
+        return [
+            ...$cached,
+            'localeLinks' => $localeLinks,
+        ];
     }
 
     /**
@@ -101,27 +107,34 @@ class PublicLayoutProps
             ->orderBy('sort_order')
             ->get()
             ->map(fn (MenuItem $item) => self::mapMenuItem($item, $langId))
+            ->filter()
             ->values()
             ->all();
     }
 
     /**
-     * @return array{label: string, url: string, children: array<int, array<string, mixed>>}
+     * @return array{label: string, url: string, children: array<int, array<string, mixed>>}|null
      */
-    private static function mapMenuItem(MenuItem $item, int $langId): array
+    private static function mapMenuItem(MenuItem $item, int $langId): ?array
     {
         $translation = $item->translations->first();
+        $url = self::resolveMenuItemUrl($item, $langId);
+
+        if ($url === null) {
+            return null;
+        }
 
         $children = $item->relationLoaded('children')
             ? $item->children
                 ->map(fn (MenuItem $child) => self::mapMenuItem($child, $langId))
+                ->filter()
                 ->values()
                 ->all()
             : [];
 
         return [
             'label' => $translation instanceof MenuItemTranslation ? $translation->label : '',
-            'url' => self::resolveMenuItemUrl($item, $langId),
+            'url' => $url,
             'children' => $children,
         ];
     }
@@ -130,7 +143,7 @@ class PublicLayoutProps
      * Bangun URL menu berdasarkan link_type + link_ref.
      * URL manual (Url) dibiarkan apa adanya; target internal di-locale-prefix.
      */
-    private static function resolveMenuItemUrl(MenuItem $item, int $langId): string
+    private static function resolveMenuItemUrl(MenuItem $item, int $langId): ?string
     {
         $locale = app()->getLocale();
 
@@ -142,10 +155,10 @@ class PublicLayoutProps
         };
     }
 
-    /** Locale-prefix path internal; kembalikan '#' bila target tak ditemukan. */
-    private static function localePath(string $locale, ?string $path): string
+    /** Locale-prefix path internal; kembalikan null bila target tak ditemukan. */
+    private static function localePath(string $locale, ?string $path): ?string
     {
-        return $path === null ? '#' : LocaleUrl::for($locale, $path);
+        return $path === null ? null : LocaleUrl::for($locale, $path);
     }
 
     private static function archivePath(?string $ref): ?string
@@ -189,6 +202,7 @@ class PublicLayoutProps
             ->where('page_id', $ref)
             ->where('language_id', $langId)
             ->where('status', 'Published')
+            ->whereHas('page')
             ->first();
 
         return $translation ? '/'.$translation->slug : null;

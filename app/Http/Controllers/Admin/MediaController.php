@@ -9,6 +9,7 @@ use App\Models\Language;
 use App\Models\Page;
 use App\Models\Post;
 use App\Models\Testimonial;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -25,7 +26,7 @@ class MediaController extends Controller
      * @var array<string, list<string>>
      */
     private const COLLECTION_ALLOWLIST = [
-        'Post' => ['featured_image'],
+        'Post' => ['featured'],
         'Page' => ['hero_image'],
         'Testimonial' => ['photo'],
     ];
@@ -38,22 +39,7 @@ class MediaController extends Controller
         $media = Media::query()
             ->latest()
             ->paginate(24)
-            ->through(fn (Media $item): array => [
-                'id' => $item->id,
-                'file_name' => $item->file_name,
-                'mime_type' => $item->mime_type,
-                'size' => $item->size,
-                'collection_name' => $item->collection_name,
-                'model_type' => class_basename((string) $item->model_type),
-                'model_id' => $item->model_id,
-                'url' => $item->getUrl(),
-                'thumb_url' => $item->hasGeneratedConversion('thumb')
-                    ? $item->getUrl('thumb')
-                    : $item->getUrl(),
-                // Alt teks (baseline PRD §A.2: satu alt + override per bahasa).
-                'alt' => (string) ($item->getCustomProperty('alt') ?? ''),
-                'alt_overrides' => (array) ($item->getCustomProperty('alt_overrides') ?? []),
-            ]);
+            ->through($this->serializeMedia(...));
 
         return Inertia::render('admin/media/index', [
             'media' => $media,
@@ -66,6 +52,21 @@ class MediaController extends Controller
                 ])
                 ->all(),
         ]);
+    }
+
+    /**
+     * Data ringkas untuk modal pemilih media tanpa navigasi Inertia.
+     */
+    public function picker(): JsonResponse
+    {
+        $media = Media::query()
+            ->latest()
+            ->limit(100)
+            ->get()
+            ->map($this->serializeMedia(...))
+            ->values();
+
+        return response()->json(['data' => $media]);
     }
 
     /**
@@ -166,5 +167,41 @@ class MediaController extends Controller
         };
 
         return $class::query()->findOrFail($modelId);
+    }
+
+    /**
+     * @return array{
+     *     id: int,
+     *     file_name: string,
+     *     mime_type: string,
+     *     size: int,
+     *     collection_name: string,
+     *     model_type: string,
+     *     model_id: int|string,
+     *     url: string,
+     *     thumb_url: string,
+     *     alt: string,
+     *     alt_overrides: array<mixed>
+     * }
+     */
+    private function serializeMedia(Media $media): array
+    {
+        $url = $media->getUrl();
+
+        return [
+            'id' => $media->id,
+            'file_name' => $media->file_name,
+            'mime_type' => $media->mime_type,
+            'size' => $media->size,
+            'collection_name' => $media->collection_name,
+            'model_type' => class_basename((string) $media->model_type),
+            'model_id' => $media->model_id,
+            'url' => $url,
+            'thumb_url' => $media->hasGeneratedConversion('thumb')
+                ? $media->getUrl('thumb')
+                : $url,
+            'alt' => (string) ($media->getCustomProperty('alt') ?? ''),
+            'alt_overrides' => (array) ($media->getCustomProperty('alt_overrides') ?? []),
+        ];
     }
 }

@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Public;
 
+use App\Enums\PageMode;
 use App\Http\Controllers\Controller;
 use App\Models\PageTranslation;
 use App\Models\WidgetPlacementTarget;
 use App\Services\Html\Sanitizer;
-use App\Support\LocaleUrl;
 use App\Support\PublicLayoutProps;
+use App\Support\PublicLocaleLinks;
+use App\Support\Pages\PageTemplateRegistry;
 use App\Support\Seo\SeoProps;
 use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
@@ -22,19 +24,22 @@ class PageController extends Controller
      */
     public function show(PageTranslation $translation): Response
     {
+        $translation->load('page');
+        $page = $translation->page;
+
         // Defense-in-depth: sanitasi HTML mode-code sebelum dikirim ke frontend
         // (dirender via dangerouslySetInnerHTML di page-show.tsx).
         $content = $translation->content;
         if (is_array($content) && isset($content['html']) && is_string($content['html'])) {
-            $content['html'] = app(Sanitizer::class)->clean($content['html']);
+            $content['html'] = $page->mode === PageMode::Code
+                ? app(Sanitizer::class)->cleanCmsPage($content['html'])
+                : app(Sanitizer::class)->cleanRichText($content['html']);
             $translation->content = $content;
         }
 
-        $translation->load('page');
-        $page = $translation->page;
-
         // Bridging region per-halaman: widget (scoped ke halaman ini) + hero + sidebar on/off.
-        $props = PublicLayoutProps::base();
+        $localeLinks = PublicLocaleLinks::page($page);
+        $props = PublicLayoutProps::base($localeLinks);
         $props['region'] = PublicLayoutProps::region(WidgetPlacementTarget::TYPE_PAGE, (string) $page->id);
         $props['region']['hero'] = [
             'enabled' => (bool) $page->hero_enabled,
@@ -48,21 +53,13 @@ class PageController extends Controller
             'enabled' => (bool) $page->sidebar_enabled,
         ];
         $props['page'] = $translation;
-
-        // hreflang: setiap terjemahan halaman yang published (slug bisa beda per bahasa).
-        $hreflang = [];
-        foreach ($page->translations()->where('status', 'Published')->with('language')->get() as $tr) {
-            if ($tr->language === null) {
-                continue;
-            }
-            $hreflang[$tr->language->code] = URL::to(LocaleUrl::for($tr->language->code, '/'.$tr->slug));
-        }
+        $props['templateKey'] = PageTemplateRegistry::resolve($page->template_key);
 
         $props['seo'] = SeoProps::for(
             title: $translation->meta_title ?: $translation->title,
             description: $translation->meta_description,
             canonical: url()->current(),
-            hreflang: SeoProps::withXDefault($hreflang),
+            hreflang: SeoProps::withXDefault(PublicLocaleLinks::hreflang($localeLinks)),
             ogType: 'website',
             ogImage: $props['region']['hero']['image'] ? URL::to($props['region']['hero']['image']) : null,
         );

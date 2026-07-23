@@ -1,4 +1,4 @@
-import { usePage } from '@inertiajs/react';
+import { Link, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { Hero } from '@/components/public/hero';
@@ -71,7 +71,14 @@ export type PublicRegion = {
 /** Props layout yang di-share dari controller publik. */
 export type PublicLayoutSharedProps = {
     locale: string;
-    locales: { code: string; name: string }[];
+    homeUrl: string;
+    localeLinks: {
+        code: string;
+        name: string;
+        url: string | null;
+        isCurrent: boolean;
+        isAvailable: boolean;
+    }[];
     headerMenu?: PublicMenuItem[];
     footerMenu?: PublicMenuItem[];
     region?: PublicRegion;
@@ -98,8 +105,6 @@ export default function PublicLayout(props: PublicLayoutProps) {
     const { region, children, jsonLd } = props;
     const { url } = usePage();
 
-    // Path tanpa prefix locale non-default (en)
-    const pathWithoutLocale = url.replace(/^\/en(?=\/|$)/, '') || '/';
     // URL menu sudah locale-prefixed → bandingkan dengan path aktif penuh (tanpa query).
     const currentPath = url.split('?')[0];
 
@@ -132,20 +137,16 @@ export default function PublicLayout(props: PublicLayoutProps) {
                     aria-label="Navigasi utama"
                     className="mx-auto flex max-w-6xl items-center justify-between p-4"
                 >
-                    <a href="/" className="font-bold">
+                    <Link href={props.homeUrl} className="font-bold">
                         Papenajam
-                    </a>
+                    </Link>
                     <ul className="flex gap-4">
                         <MenuNodes
                             items={props.headerMenu ?? []}
                             currentPath={currentPath}
                         />
                     </ul>
-                    <LocaleSwitcher
-                        currentLocale={props.locale}
-                        locales={props.locales}
-                        currentPath={pathWithoutLocale}
-                    />
+                    <LocaleSwitcher localeLinks={props.localeLinks} />
                 </nav>
             </header>
 

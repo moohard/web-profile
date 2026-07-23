@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Language;
 use App\Models\PageTranslation;
 use App\Models\PostTranslation;
 use App\Models\WritingStyle;
@@ -38,8 +39,8 @@ class AiController extends Controller
     public function translate(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'source_locale' => ['required', 'string', 'size:2'],
-            'target_locale' => ['required', 'string', 'size:2'],
+            'source_locale' => ['required', 'string', 'size:2', 'exists:languages,code'],
+            'target_locale' => ['required', 'string', 'size:2', 'exists:languages,code'],
             'source_text' => ['nullable', 'string'],
             'entity_type' => ['required_without:source_text', 'in:PostTranslation,PageTranslation'],
             'entity_id' => ['required_without:source_text', 'integer'],
@@ -66,6 +67,8 @@ class AiController extends Controller
 
         $entity = $this->resolveEntity($validated['entity_type'], (int) $validated['entity_id']);
         $this->authorizeParentUpdate($entity);
+        $this->validateEntityField($entity, $validated['field']);
+        $this->validateEntityLocale($entity, $validated['source_locale'], 'source_locale');
 
         $sourceText = $this->extractSourceText($entity, $validated['field']);
 
@@ -132,15 +135,17 @@ class AiController extends Controller
         $validated = $request->validate([
             'entity_type' => ['required', 'in:PostTranslation,PageTranslation'],
             'entity_id' => ['required', 'integer'],
-            'target_locale' => ['required', 'string', 'size:2'],
+            'target_locale' => ['required', 'string', 'size:2', 'exists:languages,code'],
             'field' => ['required', 'in:title,body,meta_title,meta_description,content'],
             'value' => ['required'],
         ]);
 
         $entity = $this->resolveEntity($validated['entity_type'], (int) $validated['entity_id']);
         $this->authorizeParentUpdate($entity);
+        $this->validateEntityField($entity, $validated['field']);
+        $this->validateEntityLocale($entity, $validated['target_locale'], 'target_locale');
 
-        $value = $this->normalizeApplyValue($validated['field'], $validated['value']);
+        $value = $this->normalizeApplyValue($entity, $validated['field'], $validated['value']);
         $entity->update([$validated['field'] => $value]);
 
         return response()->json(['ok' => true]);
@@ -183,6 +188,38 @@ class AiController extends Controller
     }
 
     /**
+     * Pastikan field sesuai dengan skema entity terjemahan.
+     */
+    private function validateEntityField(Model $entity, string $field): void
+    {
+        $allowedFields = match (true) {
+            $entity instanceof PostTranslation => ['title', 'body', 'meta_title', 'meta_description'],
+            $entity instanceof PageTranslation => ['title', 'content', 'meta_title', 'meta_description'],
+            default => [],
+        };
+
+        if (! in_array($field, $allowedFields, true)) {
+            throw ValidationException::withMessages([
+                'field' => 'Field tidak didukung untuk tipe entity ini.',
+            ]);
+        }
+    }
+
+    /**
+     * Pastikan locale request menunjuk bahasa milik entity terjemahan.
+     */
+    private function validateEntityLocale(Model $entity, string $locale, string $errorKey): void
+    {
+        $languageId = Language::query()->where('code', $locale)->value('id');
+
+        if ((int) $entity->getAttribute('language_id') !== (int) $languageId) {
+            throw ValidationException::withMessages([
+                $errorKey => 'Locale tidak cocok dengan bahasa entity terjemahan.',
+            ]);
+        }
+    }
+
+    /**
      * Ambil teks sumber untuk diterjemahkan; hindari cast array → "(string) Array".
      */
     private function extractSourceText(Model $entity, string $field): string
@@ -211,7 +248,7 @@ class AiController extends Controller
      *
      * @return string|array<string, mixed>
      */
-    private function normalizeApplyValue(string $field, mixed $value): string|array
+    private function normalizeApplyValue(Model $entity, string $field, mixed $value): string|array
     {
         if ($field === 'content') {
             if (is_string($value)) {
@@ -248,7 +285,9 @@ class AiController extends Controller
 
         // Field HTML kaya (body) dibersihkan; title/meta tetap plain text
         if ($field === 'body') {
-            return $this->sanitizer->clean($stringValue);
+            return $entity instanceof PostTranslation
+                ? $this->sanitizer->cleanRichText($stringValue)
+                : $this->sanitizer->cleanCmsPage($stringValue);
         }
 
         return $stringValue;

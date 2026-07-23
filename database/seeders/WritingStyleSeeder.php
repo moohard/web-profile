@@ -11,10 +11,11 @@ class WritingStyleSeeder extends Seeder
 {
     public function run(): void
     {
-        WritingStyle::query()->delete();
-        WritingStyle::create([
-            'name' => 'Formal Indonesia',
-            'prompt' => 'Tulis dengan gaya formal-natural Bahasa Indonesia. Sapaan baku, kalimat ringkas, hindari jargon teknis kecuali perlu. Pertahankan markup HTML apa adanya.',
-        ]);
+        WritingStyle::query()->updateOrCreate(
+            ['name' => 'Formal Indonesia'],
+            [
+                'prompt' => 'Tulis dengan gaya formal-natural Bahasa Indonesia. Sapaan baku, kalimat ringkas, hindari jargon teknis kecuali perlu. Pertahankan markup HTML apa adanya.',
+            ],
+        );
     }
 }

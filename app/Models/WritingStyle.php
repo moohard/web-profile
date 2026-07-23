@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property string $name
  * @property ?string $prompt
+ * @property bool $content_types_exists
  */
 class WritingStyle extends Model
 {

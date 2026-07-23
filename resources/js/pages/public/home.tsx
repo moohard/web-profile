@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import type { SeoProps } from '@/components/seo/meta-head';
 import PublicLayout from '@/layouts/public-layout';
 import type { PublicLayoutSharedProps } from '@/layouts/public-layout';
 
@@ -10,14 +11,15 @@ type LatestPost = {
 
 type HomeProps = PublicLayoutSharedProps & {
     latestPosts: LatestPost[];
+    seo: SeoProps;
     jsonLd?: Record<string, unknown>;
 };
 
 export default function PublicHome(props: HomeProps) {
-    const { latestPosts, jsonLd, ...layoutProps } = props;
+    const { latestPosts, seo, jsonLd, ...layoutProps } = props;
 
     return (
-        <PublicLayout {...layoutProps} title="Beranda" jsonLd={jsonLd}>
+        <PublicLayout {...layoutProps} {...seo} jsonLd={jsonLd}>
             <h1>Beranda</h1>
             <ul>
                 {latestPosts.map((p) => (

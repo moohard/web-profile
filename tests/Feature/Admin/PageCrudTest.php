@@ -257,3 +257,65 @@ it('validasi menolak bila bahasa default belum terisi judulnya', function () {
 
     expect(Page::query()->count())->toBe($countBefore);
 });
+
+it('form hanya menawarkan registry template tetap', function () {
+    $this->actingAs(pageAdmin())
+        ->get('/admin/pages/create')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('templateOptions', [
+                ['key' => 'default', 'label' => 'Default'],
+                ['key' => 'full-width', 'label' => 'Full width'],
+                ['key' => 'landing', 'label' => 'Landing'],
+            ])
+        );
+});
+
+it('menolak template key di luar registry tetap', function () {
+    $this->actingAs(pageAdmin())->post('/admin/pages', [
+        'mode' => PageMode::Template->value,
+        'template_key' => '../../uploaded-template.php',
+        'hero_enabled' => false,
+        'sidebar_enabled' => false,
+        'translations' => [[
+            'language_id' => $this->idLang,
+            'title' => 'Template Tidak Aman',
+            'status' => 'Draft',
+        ]],
+    ])->assertSessionHasErrors('template_key');
+});
+
+it('translation Published wajib memiliki content', function () {
+    $this->actingAs(pageAdmin())->post('/admin/pages', [
+        'mode' => PageMode::Template->value,
+        'template_key' => 'default',
+        'hero_enabled' => false,
+        'sidebar_enabled' => false,
+        'translations' => [[
+            'language_id' => $this->idLang,
+            'title' => 'Belum Lengkap',
+            'content' => '',
+            'status' => 'Published',
+        ]],
+    ])->assertSessionHasErrors('translations.0.content');
+});
+
+it('SEO Page dibatasi 60 dan 160 karakter', function () {
+    $this->actingAs(pageAdmin())->post('/admin/pages', [
+        'mode' => PageMode::Template->value,
+        'template_key' => 'default',
+        'hero_enabled' => false,
+        'sidebar_enabled' => false,
+        'translations' => [[
+            'language_id' => $this->idLang,
+            'title' => 'SEO Terlalu Panjang',
+            'content' => '<p>Isi</p>',
+            'status' => 'Draft',
+            'meta_title' => str_repeat('a', 61),
+            'meta_description' => str_repeat('b', 161),
+        ]],
+    ])->assertSessionHasErrors([
+        'translations.0.meta_title',
+        'translations.0.meta_description',
+    ]);
+});

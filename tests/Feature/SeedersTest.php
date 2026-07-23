@@ -6,6 +6,7 @@ use App\Models\Language;
 use App\Models\Post;
 use App\Models\RatingCriterion;
 use App\Models\User;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 it('seed menghasilkan data lengkap', function () {
@@ -29,6 +30,36 @@ it('Admin user memiliki role Admin', function () {
     $admin = User::where('email', env('ADMIN_EMAIL', 'admin@papenajam.test'))->first();
     expect($admin)->not->toBeNull()
         ->and($admin->hasRole(UserRole::Admin->value))->toBeTrue();
+});
+
+it('role mendapat capability sesuai matriks PRD', function () {
+    $this->seed();
+
+    $editor = Role::findByName(UserRole::Editor->value);
+    $author = Role::findByName(UserRole::Author->value);
+
+    expect(Permission::where('name', 'categories.viewAny')->exists())->toBeTrue()
+        ->and(Permission::where('name', 'tags.viewAny')->exists())->toBeTrue()
+        ->and($editor->hasAllPermissions([
+            'categories.viewAny',
+            'categories.create',
+            'categories.update',
+            'categories.delete',
+            'tags.viewAny',
+            'tags.create',
+            'tags.update',
+            'tags.delete',
+            'ai.create',
+            'ai.update',
+        ]))->toBeTrue()
+        ->and($editor->hasPermissionTo('ai.viewAny'))->toBeFalse()
+        ->and($editor->hasPermissionTo('ai.delete'))->toBeFalse()
+        ->and($editor->hasPermissionTo('content-types.viewAny'))->toBeFalse()
+        ->and($editor->hasPermissionTo('admin.access-system'))->toBeFalse()
+        ->and($editor->hasPermissionTo('admin.access-appearance'))->toBeFalse()
+        ->and($author->hasPermissionTo('ai.update'))->toBeFalse()
+        ->and($author->hasPermissionTo('media.viewAny'))->toBeTrue()
+        ->and($author->hasPermissionTo('posts.update'))->toBeTrue();
 });
 
 it('DemoPost ter-seed dengan translation ID+EN', function () {

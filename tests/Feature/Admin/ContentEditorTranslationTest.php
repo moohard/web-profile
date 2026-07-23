@@ -12,6 +12,7 @@ use App\Models\PostTranslation;
 use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 
 uses(RefreshDatabase::class);
 
@@ -31,12 +32,16 @@ it('POST /admin/posts membuat post beserta translation per bahasa yang diisi', f
     $category = Category::factory()->withTranslation('id', $this->idLang)->create();
     $tag = Tag::factory()->withTranslation('id', $this->idLang)->create();
     $admin = editorAdmin();
+    $sourcePost = Post::factory()->create(['type_id' => $this->type->id]);
+    $sourceMedia = $sourcePost
+        ->addMedia(UploadedFile::fake()->image('featured-create.jpg'))
+        ->toMediaCollection('library');
 
     $response = $this->actingAs($admin)->post('/admin/posts', [
         'type_id' => $this->type->id,
         'category_id' => $category->id,
         'tags' => [$tag->id],
-        'featured_image' => 'https://example.test/media/1.jpg',
+        'featured_media_id' => $sourceMedia->id,
         'translations' => [
             [
                 'language_id' => $this->idLang,
@@ -64,7 +69,7 @@ it('POST /admin/posts membuat post beserta translation per bahasa yang diisi', f
     expect($post)->not->toBeNull()
         ->and($post->author_id)->toBe($admin->id)
         ->and($post->category_id)->toBe($category->id)
-        ->and($post->featured_image)->toBe('https://example.test/media/1.jpg')
+        ->and($post->getFirstMedia('featured'))->not->toBeNull()
         ->and($post->tags()->pluck('tags.id')->all())->toBe([$tag->id])
         ->and($post->translations()->count())->toBe(2);
 
@@ -84,7 +89,7 @@ it('body post disanitasi sebelum disimpan', function () {
         'translations' => [[
             'language_id' => $this->idLang,
             'title' => 'Aman',
-            'body' => '<script>alert(1)</script><p>ok</p>',
+            'body' => '<script>alert(1)</script><section class="layout"><h2>Judul</h2><p style="color:red">ok</p></section>',
             'status' => 'Draft',
         ]],
     ])->assertRedirect();
@@ -92,7 +97,10 @@ it('body post disanitasi sebelum disimpan', function () {
     $translation = PostTranslation::query()->latest('id')->first();
 
     expect($translation->body)->not->toContain('<script>')
-        ->and($translation->body)->toBe('<p>ok</p>');
+        ->not->toContain('<section')
+        ->not->toContain('class=')
+        ->not->toContain('style=')
+        ->and($translation->body)->toBe('<h2>Judul</h2><p>ok</p>');
 });
 
 it('slug otomatis dibuat dari judul dan tetap unik saat bentrok dalam bahasa yang sama', function () {
@@ -140,17 +148,183 @@ it('validasi menolak bila bahasa default belum terisi judulnya', function () {
         ->and(PostTranslation::query()->where('title', 'Only English')->exists())->toBeFalse();
 });
 
+it('translation Published wajib memiliki title dan body', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [
+            [
+                'language_id' => $this->idLang,
+                'title' => 'Judul Indonesia',
+                'body' => '<p>Isi Indonesia</p>',
+                'status' => 'Draft',
+            ],
+            [
+                'language_id' => $this->enLang,
+                'title' => '',
+                'body' => '',
+                'status' => 'Published',
+            ],
+        ],
+    ])->assertSessionHasErrors([
+        'translations.1.title',
+        'translations.1.body',
+    ]);
+});
+
+it('validasi menolak language_id translation yang duplikat', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [
+            [
+                'language_id' => $this->idLang,
+                'title' => 'Judul Valid',
+                'status' => 'Draft',
+            ],
+            [
+                'language_id' => $this->idLang,
+                'title' => '',
+                'body' => '<p>Menimpa judul</p>',
+                'status' => 'Draft',
+            ],
+        ],
+    ])->assertSessionHasErrors('translations.1.language_id');
+
+    expect(PostTranslation::query()->where('title', 'Judul Valid')->exists())->toBeFalse();
+});
+
+it('translation Published menolak body yang kosong setelah sanitasi', function (string $body) {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [[
+            'language_id' => $this->idLang,
+            'title' => 'Konten Tidak Aman',
+            'body' => $body,
+            'status' => 'Published',
+        ]],
+    ])->assertSessionHasErrors('translations.0.body');
+
+    expect(PostTranslation::query()->where('title', 'Konten Tidak Aman')->exists())->toBeFalse();
+})->with([
+    'script saja' => '<script>alert(1)</script>',
+    'paragraf kosong Tiptap' => '<p></p>',
+    'paragraf break Tiptap' => '<p><br></p>',
+    'non-breaking space' => '<p>&nbsp;</p>',
+]);
+
+it('translation Published menerima body berupa gambar rich text yang aman', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [[
+            'language_id' => $this->idLang,
+            'title' => 'Galeri Tunggal',
+            'body' => '<p><img src="https://example.test/image.jpg" alt="Galeri"></p>',
+            'status' => 'Published',
+        ]],
+    ])->assertRedirect(route('admin.posts.index'));
+
+    expect(PostTranslation::query()->where('title', 'Galeri Tunggal')->value('body'))
+        ->toContain('<img src="https://example.test/image.jpg" alt="Galeri">');
+});
+
+it('translation Draft kosong selain bahasa default diabaikan', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [
+            [
+                'language_id' => $this->idLang,
+                'title' => 'Hanya Bahasa Default',
+                'status' => 'Draft',
+            ],
+            [
+                'language_id' => $this->enLang,
+                'title' => '',
+                'slug' => '',
+                'body' => '',
+                'status' => 'Draft',
+                'published_at' => null,
+                'meta_title' => '',
+                'meta_description' => '',
+            ],
+        ],
+    ])->assertRedirect(route('admin.posts.index'));
+
+    $post = Post::query()->latest('id')->firstOrFail();
+
+    expect($post->translations()->count())->toBe(1)
+        ->and($post->translations()->first()->language_id)->toBe($this->idLang);
+});
+
+it('translation Draft non-default boleh disimpan tanpa title', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [
+            [
+                'language_id' => $this->idLang,
+                'title' => 'Bahasa Default',
+                'status' => 'Draft',
+            ],
+            [
+                'language_id' => $this->enLang,
+                'body' => '<p>English work in progress</p>',
+                'status' => 'Draft',
+            ],
+        ],
+    ])->assertRedirect(route('admin.posts.index'));
+
+    $translation = PostTranslation::query()
+        ->where('language_id', $this->enLang)
+        ->latest('id')
+        ->firstOrFail();
+
+    expect($translation->title)->toBe('')
+        ->and($translation->body)->toBe('<p>English work in progress</p>')
+        ->and($translation->status)->toBe(PostStatus::Draft);
+});
+
+it('status translation default ke Draft ketika tidak dikirim', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [[
+            'language_id' => $this->idLang,
+            'title' => 'Draft Otomatis',
+        ]],
+    ])->assertRedirect(route('admin.posts.index'));
+
+    expect(PostTranslation::query()->where('title', 'Draft Otomatis')->value('status'))
+        ->toBe(PostStatus::Draft);
+});
+
+it('validasi membatasi panjang metadata SEO', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [[
+            'language_id' => $this->idLang,
+            'title' => 'Metadata Panjang',
+            'status' => 'Draft',
+            'meta_title' => str_repeat('a', 61),
+            'meta_description' => str_repeat('b', 161),
+        ]],
+    ])->assertSessionHasErrors([
+        'translations.0.meta_title',
+        'translations.0.meta_description',
+    ]);
+});
+
 it('PUT /admin/posts/{post} meng-upsert translations, sync tags, dan update kategori/featured', function () {
     $post = Post::factory()->withTranslation('id', $this->idLang, ['title' => 'Lama'])->create(['type_id' => $this->type->id]);
     $category = Category::factory()->withTranslation('id', $this->idLang)->create();
     $tag = Tag::factory()->withTranslation('id', $this->idLang)->create();
     $existingTranslation = $post->translations()->first();
+    $sourcePost = Post::factory()->create(['type_id' => $this->type->id]);
+    $sourceMedia = $sourcePost
+        ->addMedia(UploadedFile::fake()->image('featured-update.jpg'))
+        ->toMediaCollection('library');
 
     $this->actingAs(editorAdmin())->put("/admin/posts/{$post->id}", [
         'type_id' => $this->type->id,
         'category_id' => $category->id,
         'tags' => [$tag->id],
-        'featured_image' => 'https://example.test/media/2.jpg',
+        'featured_media_id' => $sourceMedia->id,
         'translations' => [[
             'language_id' => $this->idLang,
             'title' => 'Baru',
@@ -164,7 +338,7 @@ it('PUT /admin/posts/{post} meng-upsert translations, sync tags, dan update kate
     $fresh = $post->fresh();
 
     expect($fresh->category_id)->toBe($category->id)
-        ->and($fresh->featured_image)->toBe('https://example.test/media/2.jpg')
+        ->and($fresh->getFirstMedia('featured'))->not->toBeNull()
         ->and($fresh->tags()->pluck('tags.id')->all())->toBe([$tag->id])
         ->and($fresh->translations()->count())->toBe(1)
         ->and($fresh->translations()->first()->title)->toBe('Baru')

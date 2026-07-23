@@ -7,6 +7,8 @@ namespace App\Http\Requests\Admin;
 use App\Enums\PostStatus;
 use App\Models\Language;
 use App\Models\Post;
+use App\Services\Html\Sanitizer;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -34,37 +36,117 @@ class PostRequest extends FormRequest
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['integer', 'exists:tags,id'],
-            'featured_image' => ['nullable', 'string', 'max:2048'],
+            'featured_media_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('media', 'id')->where(
+                    fn (Builder $query): Builder => $query->where('mime_type', 'like', 'image/%'),
+                ),
+            ],
             'translations' => ['required', 'array', 'min:1'],
-            'translations.*.language_id' => ['required', 'integer', 'exists:languages,id'],
-            'translations.*.title' => ['required', 'string', 'max:255'],
+            'translations.*.language_id' => ['required', 'integer', 'distinct', 'exists:languages,id'],
+            'translations.*.title' => ['nullable', 'string', 'max:255'],
             'translations.*.slug' => ['nullable', 'string', 'max:255'],
             'translations.*.body' => ['nullable', 'string'],
             'translations.*.status' => ['required', Rule::in([PostStatus::Draft->value, PostStatus::Published->value])],
             'translations.*.published_at' => ['nullable', 'date'],
-            'translations.*.meta_title' => ['nullable', 'string', 'max:255'],
-            'translations.*.meta_description' => ['nullable', 'string', 'max:255'],
+            'translations.*.meta_title' => ['nullable', 'string', 'max:60'],
+            'translations.*.meta_description' => ['nullable', 'string', 'max:160'],
         ];
     }
 
     /**
-     * Pastikan minimal entri bahasa default terisi judulnya — bahasa lain opsional.
+     * @return list<callable>
      */
-    public function withValidator(Validator $validator): void
+    public function after(): array
     {
-        $validator->after(function (Validator $validator): void {
-            /** @var list<array{language_id?: int|string, title?: ?string}> $translations */
+        return [function (Validator $validator): void {
+            /** @var list<array{language_id?: int|string, title?: ?string, body?: ?string, status?: ?string}> $translations */
             $translations = (array) $this->input('translations', []);
             $defaultLanguageId = Language::defaultModel()->id;
+            $sanitizer = app(Sanitizer::class);
 
-            $hasDefault = collect($translations)->contains(
-                fn (array $translation): bool => (int) ($translation['language_id'] ?? 0) === $defaultLanguageId
-                    && filled($translation['title'] ?? null),
+            $defaultTranslationIndex = collect($translations)->search(
+                fn (array $translation): bool => (int) ($translation['language_id'] ?? 0) === $defaultLanguageId,
             );
 
-            if (! $hasDefault) {
+            if ($defaultTranslationIndex === false) {
                 $validator->errors()->add('translations', 'Bahasa default wajib diisi (judul).');
+
+                return;
             }
-        });
+
+            if (! filled($translations[$defaultTranslationIndex]['title'] ?? null)) {
+                $validator->errors()->add(
+                    "translations.{$defaultTranslationIndex}.title",
+                    'Judul bahasa default wajib diisi.',
+                );
+            }
+
+            foreach ($translations as $index => $translation) {
+                if (($translation['status'] ?? PostStatus::Draft->value) !== PostStatus::Published->value) {
+                    continue;
+                }
+
+                if (! filled($translation['title'] ?? null)) {
+                    $validator->errors()->add(
+                        "translations.{$index}.title",
+                        'Judul wajib diisi untuk translation Published.',
+                    );
+                }
+
+                $body = $translation['body'] ?? null;
+                $sanitizedBody = is_string($body) ? $sanitizer->cleanRichText($body) : null;
+
+                if (! $this->hasRichTextContent($sanitizedBody)) {
+                    $validator->errors()->add(
+                        "translations.{$index}.body",
+                        'Konten wajib diisi untuk translation Published.',
+                    );
+                }
+            }
+        }];
+    }
+
+    private function hasRichTextContent(?string $html): bool
+    {
+        if ($html === null) {
+            return false;
+        }
+
+        return excerpt($html) !== '' || preg_match('/<img(?:\s|>)/i', $html) === 1;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        $defaultLanguageId = Language::defaultModel()->id;
+        $translations = [];
+
+        foreach ((array) $this->input('translations', []) as $translation) {
+            if (! is_array($translation)) {
+                continue;
+            }
+
+            $translation['status'] ??= PostStatus::Draft->value;
+
+            $isDefault = (int) ($translation['language_id'] ?? 0) === $defaultLanguageId;
+            $isEmptyDraft = $translation['status'] === PostStatus::Draft->value
+                && ! collect([
+                    $translation['title'] ?? null,
+                    $translation['slug'] ?? null,
+                    $translation['body'] ?? null,
+                    $translation['published_at'] ?? null,
+                    $translation['meta_title'] ?? null,
+                    $translation['meta_description'] ?? null,
+                ])->contains(fn (mixed $value): bool => filled($value));
+
+            if (! $isDefault && $isEmptyDraft) {
+                continue;
+            }
+
+            $translations[] = $translation;
+        }
+
+        $this->merge(['translations' => $translations]);
     }
 }

@@ -7,11 +7,15 @@ namespace App\Http\Controllers\Public;
 use App\Http\Controllers\Controller;
 use App\Models\ContentType;
 use App\Models\Language;
+use App\Models\Post;
 use App\Models\PostTranslation;
+use App\Models\Tag;
 use App\Models\WidgetPlacementTarget;
 use App\Services\Html\Sanitizer;
 use App\Support\LocaleUrl;
+use App\Support\Posts\PostFeaturedImage;
 use App\Support\PublicLayoutProps;
+use App\Support\PublicLocaleLinks;
 use App\Support\Seo\SeoProps;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
@@ -28,36 +32,54 @@ class PostController extends Controller
         $langId = Language::current()->id;
 
         $posts = PostTranslation::query()
-            ->with('post.type')
+            ->with([
+                'post.type',
+                'post.category.translations',
+                'post.media',
+            ])
             ->where('language_id', $langId)
             ->whereHas('post', fn ($q) => $q->where('type_id', $contentType->id))
             ->published()
             ->orderByDesc('published_at')
             ->paginate(12)
-            ->through(fn (PostTranslation $t) => [
-                'id' => $t->id,
-                'title' => $t->title,
-                'url' => LocaleUrl::for(app()->getLocale(), '/'.$contentType->slug.'/'.$t->slug),
-            ]);
+            ->withQueryString()
+            ->through(function (PostTranslation $translation) use ($contentType, $langId): array {
+                $post = $translation->post;
 
-        // Slug content type sama di semua bahasa → hreflang = 1 URL arsip per locale aktif.
-        $hreflang = [];
-        foreach (Language::active()->get() as $language) {
-            $hreflang[$language->code] = URL::to(LocaleUrl::for($language->code, '/'.$contentType->slug));
-        }
+                return [
+                    'id' => $translation->id,
+                    'title' => $translation->title,
+                    'url' => LocaleUrl::for(
+                        app()->getLocale(),
+                        '/'.$contentType->slug.'/'.$translation->slug,
+                    ),
+                    'excerpt' => excerpt($translation->body),
+                    'featured' => PostFeaturedImage::from($post->getFirstMedia('featured')),
+                    'published_at' => $translation->published_at?->toIso8601String(),
+                    'category' => $this->categoryData($post, $langId),
+                ];
+            });
+
+        $localeLinks = PublicLocaleLinks::archive($contentType);
 
         $name = $this->contentTypeName($contentType);
+        $contentTypeDescription = $this->contentTypeDescription($contentType);
+        $firstPost = $posts->items()[0] ?? null;
+        $fallbackDescription = $firstPost !== null ? $firstPost['excerpt'] : null;
+        $description = $contentTypeDescription !== null && $contentTypeDescription !== ''
+            ? $contentTypeDescription
+            : $fallbackDescription;
 
         $seo = SeoProps::for(
             title: $name,
-            description: $this->contentTypeDescription($contentType),
+            description: $description,
             canonical: url()->current(),
-            hreflang: SeoProps::withXDefault($hreflang),
+            hreflang: SeoProps::withXDefault(PublicLocaleLinks::hreflang($localeLinks)),
             ogType: 'website',
         );
 
         return Inertia::render('public/post-archive', array_merge(
-            PublicLayoutProps::base(),
+            PublicLayoutProps::base($localeLinks),
             [
                 'region' => PublicLayoutProps::region(WidgetPlacementTarget::TYPE_CONTENT_ARCHIVE, (string) $contentType->id),
                 'contentType' => [
@@ -75,23 +97,32 @@ class PostController extends Controller
      */
     public function show(Request $request, ContentType $contentType, PostTranslation $translation): Response
     {
-        $post = $translation->post()->firstOrFail();
-        $allTranslations = $post->translations()->published()->with('language')->get();
-
-        $hreflang = [];
-        foreach ($allTranslations as $tr) {
-            $path = "/{$contentType->slug}/{$tr->slug}";
-            $languageCode = $tr->language->code;
-            $hreflang[$languageCode] = URL::to(LocaleUrl::for($languageCode, $path));
-        }
+        $langId = Language::current()->id;
+        $post = $translation->post()
+            ->with([
+                'type',
+                'category.translations',
+                'tags.translations',
+                'media',
+            ])
+            ->firstOrFail();
+        $localeLinks = PublicLocaleLinks::post($post, $contentType);
+        $body = app(Sanitizer::class)->cleanRichText($translation->body ?? '');
+        $description = filled($translation->meta_description)
+            ? $translation->meta_description
+            : excerpt($body);
+        $featured = PostFeaturedImage::from($post->getFirstMedia('featured'));
+        $featuredUrl = $featured !== null ? URL::to($featured['src']) : null;
+        $category = $this->categoryData($post, $langId);
+        $tags = $this->tagData($post, $langId);
 
         $seo = SeoProps::for(
             title: $translation->meta_title ?? $translation->title,
-            description: $translation->meta_description,
+            description: $description,
             canonical: url()->current(),
-            hreflang: SeoProps::withXDefault($hreflang),
+            hreflang: SeoProps::withXDefault(PublicLocaleLinks::hreflang($localeLinks)),
             ogType: 'article',
-            ogImage: $post->featured_image ? URL::to($post->featured_image) : null,
+            ogImage: $featuredUrl,
         );
 
         $jsonLd = [
@@ -99,18 +130,28 @@ class PostController extends Controller
             '@type' => 'Article',
             'headline' => $translation->title,
             'datePublished' => $translation->published_at?->toIso8601String(),
-            'image' => $post->featured_image ? [URL::to($post->featured_image)] : [],
+            'dateModified' => $translation->updated_at?->toIso8601String(),
+            'description' => $description,
+            'image' => $featuredUrl !== null ? [$featuredUrl] : [],
+            'articleSection' => $category['name'] ?? null,
+            'keywords' => array_column($tags, 'name'),
             'inLanguage' => app()->getLocale(),
         ];
 
-        // Defense-in-depth: sanitasi HTML body sebelum dikirim ke frontend (dirender via dangerouslySetInnerHTML)
-        $translation->body = app(Sanitizer::class)->clean($translation->body ?? '');
-
         return Inertia::render('public/post-show', array_merge(
-            PublicLayoutProps::base(),
+            PublicLayoutProps::base($localeLinks),
             [
                 'region' => PublicLayoutProps::region(WidgetPlacementTarget::TYPE_CONTENT_SINGLE, (string) $post->id),
-                'post' => $translation->load('post.type'),
+                'post' => [
+                    'id' => $translation->id,
+                    'slug' => $translation->slug,
+                    'title' => $translation->title,
+                    'body' => $body,
+                    'published_at' => $translation->published_at?->toIso8601String(),
+                    'featured' => $featured,
+                    'category' => $category,
+                    'tags' => $tags,
+                ],
                 'contentType' => [
                     'slug' => $contentType->slug,
                     'name' => $this->contentTypeName($contentType),
@@ -133,5 +174,44 @@ class PostController extends Controller
         return $contentType->translations()
             ->where('language_id', Language::current()->id)
             ->value('description');
+    }
+
+    /**
+     * @return null|array{id: int, name: string}
+     */
+    private function categoryData(Post $post, int $languageId): ?array
+    {
+        $category = $post->category;
+
+        if ($category === null) {
+            return null;
+        }
+
+        $translation = $category->translations->firstWhere('language_id', $languageId)
+            ?? $category->translations->first();
+
+        return [
+            'id' => $category->id,
+            'name' => $translation !== null ? $translation->name : $category->slug,
+        ];
+    }
+
+    /**
+     * @return array<int, array{id: int, name: string}>
+     */
+    private function tagData(Post $post, int $languageId): array
+    {
+        return $post->tags
+            ->map(function (Tag $tag) use ($languageId): array {
+                $translation = $tag->translations->firstWhere('language_id', $languageId)
+                    ?? $tag->translations->first();
+
+                return [
+                    'id' => (int) $tag->id,
+                    'name' => $translation !== null ? (string) $translation->name : $tag->slug,
+                ];
+            })
+            ->values()
+            ->all();
     }
 }

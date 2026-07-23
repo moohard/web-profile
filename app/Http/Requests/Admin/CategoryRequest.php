@@ -6,6 +6,7 @@ namespace App\Http\Requests\Admin;
 
 use App\Models\Category;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Validator;
 
 class CategoryRequest extends FormRequest
 {
@@ -33,5 +34,78 @@ class CategoryRequest extends FormRequest
             'translations.*.language_id' => ['required', 'integer', 'exists:languages,id'],
             'translations.*.name' => ['required', 'string', 'max:255'],
         ];
+    }
+
+    /**
+     * @return array{
+     *     slug: null|string,
+     *     parent_id: null|int,
+     *     sort_order: int,
+     *     translations: list<array{language_id: int, name: string}>
+     * }
+     */
+    public function validatedCategoryData(): array
+    {
+        $validated = $this->validated();
+        $translations = [];
+        $validatedTranslations = $validated['translations'] ?? [];
+
+        if (is_array($validatedTranslations)) {
+            foreach ($validatedTranslations as $translation) {
+                if (! is_array($translation)) {
+                    continue;
+                }
+
+                $translations[] = [
+                    'language_id' => (int) $translation['language_id'],
+                    'name' => (string) $translation['name'],
+                ];
+            }
+        }
+
+        $slug = $validated['slug'] ?? null;
+        $parentId = $validated['parent_id'] ?? null;
+        $sortOrder = $validated['sort_order'] ?? 0;
+
+        return [
+            'slug' => is_string($slug) && $slug !== '' ? $slug : null,
+            'parent_id' => $parentId !== null ? (int) $parentId : null,
+            'sort_order' => (int) $sortOrder,
+            'translations' => $translations,
+        ];
+    }
+
+    /**
+     * @return list<callable>
+     */
+    public function after(): array
+    {
+        return [function (Validator $validator): void {
+            $category = $this->route('category');
+            $parentId = $this->integer('parent_id');
+
+            if (! $category instanceof Category || $parentId === 0) {
+                return;
+            }
+
+            $visited = [];
+            $candidate = Category::query()->find($parentId);
+
+            while ($candidate !== null && ! isset($visited[$candidate->id])) {
+                if ($candidate->id === $category->id) {
+                    $validator->errors()->add(
+                        'parent_id',
+                        'Induk kategori tidak boleh membentuk siklus.',
+                    );
+
+                    return;
+                }
+
+                $visited[$candidate->id] = true;
+                $candidate = $candidate->parent_id !== null
+                    ? Category::query()->find($candidate->parent_id)
+                    : null;
+            }
+        }];
     }
 }

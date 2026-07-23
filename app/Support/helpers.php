@@ -5,6 +5,63 @@ declare(strict_types=1);
 use App\Models\Language;
 use App\Models\SettingTranslation;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
+
+if (! function_exists('excerpt')) {
+    /**
+     * Ubah HTML menjadi ringkasan teks polos yang Unicode-safe.
+     */
+    function excerpt(?string $html, int $limit = 160): string
+    {
+        if ($html === null || $limit <= 0) {
+            return '';
+        }
+
+        $withBlockSpacing = preg_replace(
+            '/<\s*\/?\s*(?:p|div|h[1-6]|li|blockquote|br)\b[^>]*>/iu',
+            ' ',
+            $html,
+        ) ?? $html;
+        $plainText = html_entity_decode(
+            strip_tags($withBlockSpacing),
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8',
+        );
+        $normalized = Str::squish($plainText);
+
+        if ($normalized === '') {
+            return '';
+        }
+
+        $length = grapheme_strlen($normalized);
+
+        if ($length <= $limit) {
+            return $normalized;
+        }
+
+        $truncated = grapheme_substr($normalized, 0, $limit);
+
+        if ($truncated === false) {
+            return '';
+        }
+
+        $nextGrapheme = grapheme_substr($normalized, $limit, 1) ?: '';
+
+        if (
+            preg_match('/\s/u', $truncated) === 1
+            && preg_match('/\S$/u', $truncated) === 1
+            && preg_match('/^\S/u', $nextGrapheme) === 1
+        ) {
+            $withoutPartialWord = preg_replace('/\s+\S*$/u', '', $truncated);
+
+            if (is_string($withoutPartialWord) && $withoutPartialWord !== '') {
+                $truncated = $withoutPartialWord;
+            }
+        }
+
+        return rtrim($truncated).'…';
+    }
+}
 
 if (! function_exists('setting_translated')) {
     /**

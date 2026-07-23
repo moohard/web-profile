@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\PostStatus;
+use App\Enums\PageMode;
 use App\Models\ContentType;
 use App\Models\Language;
 use App\Models\Page;
@@ -52,5 +53,39 @@ it('membersihkan HTML berbahaya pada content halaman sebelum dikirim ke frontend
         ->assertInertia(fn (Assert $inertiaPage) => $inertiaPage
             ->component('public/page-show')
             ->where('page.content.html', '<p>Isi halaman</p>')
+        );
+});
+
+it('mengirim templateKey registry dan fallback default untuk key tidak dikenal', function () {
+    $landing = Page::factory()->create([
+        'mode' => PageMode::Template,
+        'template_key' => 'landing',
+    ]);
+    PageTranslation::factory()->for($landing)->create([
+        'language_id' => $this->langId,
+        'slug' => 'landing-page',
+        'status' => 'Published',
+    ]);
+
+    $this->get('/landing-page')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('templateKey', 'landing')
+        );
+
+    $unknown = Page::factory()->create([
+        'mode' => PageMode::Template,
+        'template_key' => 'uploaded-template',
+    ]);
+    PageTranslation::factory()->for($unknown)->create([
+        'language_id' => $this->langId,
+        'slug' => 'unknown-template',
+        'status' => 'Published',
+    ]);
+
+    $this->get('/unknown-template')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('templateKey', 'default')
         );
 });

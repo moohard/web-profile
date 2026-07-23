@@ -37,6 +37,7 @@ type Category = {
     slug: string;
     parent_id: number | null;
     sort_order: number;
+    depth: number;
     translations: CategoryTranslation[];
 };
 
@@ -71,6 +72,27 @@ function buildInitialTranslations(
     }
 
     return values;
+}
+
+function isDescendant(
+    candidate: Category,
+    ancestorId: number,
+    categories: Category[],
+): boolean {
+    const visited = new Set<number>();
+    let parentId = candidate.parent_id;
+
+    while (parentId !== null && !visited.has(parentId)) {
+        if (parentId === ancestorId) {
+            return true;
+        }
+
+        visited.add(parentId);
+        parentId =
+            categories.find((item) => item.id === parentId)?.parent_id ?? null;
+    }
+
+    return false;
 }
 
 function CategoryFormDialog({
@@ -125,7 +147,12 @@ function CategoryFormDialog({
         }
     }
 
-    const parentOptions = categories.filter((c) => c.id !== category?.id);
+    const parentOptions = categories.filter(
+        (candidate) =>
+            candidate.id !== category?.id &&
+            (category === undefined ||
+                !isDescendant(candidate, category.id, categories)),
+    );
 
     return (
         <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -192,7 +219,7 @@ function CategoryFormDialog({
                                 </SelectItem>
                                 {parentOptions.map((c) => (
                                     <SelectItem key={c.id} value={String(c.id)}>
-                                        {categoryName(c, languages)}
+                                        {`${'— '.repeat(c.depth)}${categoryName(c, languages)}`}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -260,7 +287,24 @@ export default function CategoriesIndex({
         {
             key: 'name',
             header: 'Nama',
-            render: (row) => categoryName(row, languages),
+            render: (category) => (
+                <span
+                    className="block"
+                    style={{
+                        paddingLeft: `${category.depth * 1.25}rem`,
+                    }}
+                >
+                    {category.depth > 0 && (
+                        <span
+                            className="mr-2 text-muted-foreground"
+                            aria-hidden="true"
+                        >
+                            ↳
+                        </span>
+                    )}
+                    {categoryName(category, languages)}
+                </span>
+            ),
         },
         {
             key: 'slug',

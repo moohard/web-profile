@@ -11,11 +11,17 @@ class LanguageSeeder extends Seeder
 {
     public function run(): void
     {
-        Language::query()->delete();
-        Language::insert([
-            ['code' => 'id', 'name' => 'Bahasa Indonesia', 'is_default' => true, 'is_active' => true, 'sort_order' => 1, 'created_at' => now(), 'updated_at' => now()],
-            ['code' => 'en', 'name' => 'English', 'is_default' => false, 'is_active' => true, 'sort_order' => 2, 'created_at' => now(), 'updated_at' => now()],
-        ]);
+        Language::query()->where('code', '!=', 'id')->update(['is_default' => false]);
+
+        Language::query()->updateOrCreate(
+            ['code' => 'id'],
+            ['name' => 'Bahasa Indonesia', 'is_default' => true, 'is_active' => true, 'sort_order' => 1],
+        );
+        Language::query()->updateOrCreate(
+            ['code' => 'en'],
+            ['name' => 'English', 'is_default' => false, 'is_active' => true, 'sort_order' => 2],
+        );
+
         Language::flushCache();
     }
 }

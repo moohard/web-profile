@@ -27,6 +27,8 @@ class RolePermissionSeeder extends Seeder
             'settings',
             'ai',
             'content-types',
+            'categories',
+            'tags',
             'languages',
             'writing-styles',
             'rating-criteria',
@@ -39,15 +41,15 @@ class RolePermissionSeeder extends Seeder
 
         foreach ($resources as $resource) {
             foreach ($actions as $action) {
-                Permission::firstOrCreate(['name' => "{$resource}.{$action}"]);
+                Permission::findOrCreate("{$resource}.{$action}");
             }
         }
 
-        Permission::firstOrCreate(['name' => 'posts.deleteOwn']);
-        Permission::firstOrCreate(['name' => 'access-admin']);
-        Permission::firstOrCreate(['name' => 'admin.use-page-code-mode']);
-        Permission::firstOrCreate(['name' => 'admin.access-system']);
-        Permission::firstOrCreate(['name' => 'admin.access-appearance']);
+        Permission::findOrCreate('posts.deleteOwn');
+        Permission::findOrCreate('access-admin');
+        Permission::findOrCreate('admin.use-page-code-mode');
+        Permission::findOrCreate('admin.access-system');
+        Permission::findOrCreate('admin.access-appearance');
 
         // Wajib setelah create permission jika model events dimute
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
@@ -55,18 +57,28 @@ class RolePermissionSeeder extends Seeder
         $allPermissions = Permission::pluck('name')->toArray();
 
         // Admin: semua
-        $admin = Role::firstOrCreate(['name' => UserRole::Admin->value]);
+        $admin = Role::findOrCreate(UserRole::Admin->value);
         $admin->syncPermissions($allPermissions);
 
         // Editor: akses admin + konten/halaman/media/interaksi (tanpa Tampilan, tanpa Sistem)
-        $editor = Role::firstOrCreate(['name' => UserRole::Editor->value]);
+        $editor = Role::findOrCreate(UserRole::Editor->value);
         $editor->syncPermissions(array_merge(
-            ['access-admin'],
-            $this->permissionNamesFor(['posts', 'pages', 'media', 'contact-messages', 'testimonials', 'ratings', 'galleries']),
+            ['access-admin', 'ai.create', 'ai.update'],
+            $this->permissionNamesFor([
+                'posts',
+                'pages',
+                'media',
+                'categories',
+                'tags',
+                'contact-messages',
+                'testimonials',
+                'ratings',
+                'galleries',
+            ]),
         ));
 
         // Author: akses admin + posts milik sendiri + media
-        $author = Role::firstOrCreate(['name' => UserRole::Author->value]);
+        $author = Role::findOrCreate(UserRole::Author->value);
         $author->syncPermissions(array_merge(
             ['access-admin'],
             $this->permissionNamesFor(['media']),

@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Tags\FindOrCreateTag;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\QuickStoreTagRequest;
 use App\Http\Requests\Admin\TagRequest;
 use App\Models\Language;
 use App\Models\Tag;
 use App\Models\TagTranslation;
 use App\Support\ContentSlug;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -72,6 +75,24 @@ class TagController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Tag berhasil dibuat.']);
 
         return back();
+    }
+
+    public function quickStore(
+        QuickStoreTagRequest $request,
+        FindOrCreateTag $findOrCreateTag,
+    ): JsonResponse {
+        $data = $request->validated();
+        $result = $findOrCreateTag((int) $data['language_id'], $data['name']);
+        $tag = $result['tag'];
+        $name = $tag->translations()
+            ->where('language_id', (int) $data['language_id'])
+            ->value('name') ?? $data['name'];
+
+        return response()->json([
+            'id' => $tag->id,
+            'name' => $name,
+            'created' => $result['created'],
+        ], $result['created'] ? 201 : 200);
     }
 
     /**
