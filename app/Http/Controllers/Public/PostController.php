@@ -12,6 +12,7 @@ use App\Models\WidgetPlacementTarget;
 use App\Services\Html\Sanitizer;
 use App\Support\LocaleUrl;
 use App\Support\PublicLayoutProps;
+use App\Support\PublicLocaleLinks;
 use App\Support\Seo\SeoProps;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\URL;
@@ -40,11 +41,7 @@ class PostController extends Controller
                 'url' => LocaleUrl::for(app()->getLocale(), '/'.$contentType->slug.'/'.$t->slug),
             ]);
 
-        // Slug content type sama di semua bahasa → hreflang = 1 URL arsip per locale aktif.
-        $hreflang = [];
-        foreach (Language::active()->get() as $language) {
-            $hreflang[$language->code] = URL::to(LocaleUrl::for($language->code, '/'.$contentType->slug));
-        }
+        $localeLinks = PublicLocaleLinks::archive($contentType);
 
         $name = $this->contentTypeName($contentType);
 
@@ -52,12 +49,12 @@ class PostController extends Controller
             title: $name,
             description: $this->contentTypeDescription($contentType),
             canonical: url()->current(),
-            hreflang: SeoProps::withXDefault($hreflang),
+            hreflang: SeoProps::withXDefault(PublicLocaleLinks::hreflang($localeLinks)),
             ogType: 'website',
         );
 
         return Inertia::render('public/post-archive', array_merge(
-            PublicLayoutProps::base(),
+            PublicLayoutProps::base($localeLinks),
             [
                 'region' => PublicLayoutProps::region(WidgetPlacementTarget::TYPE_CONTENT_ARCHIVE, (string) $contentType->id),
                 'contentType' => [
@@ -76,20 +73,13 @@ class PostController extends Controller
     public function show(Request $request, ContentType $contentType, PostTranslation $translation): Response
     {
         $post = $translation->post()->firstOrFail();
-        $allTranslations = $post->translations()->published()->with('language')->get();
-
-        $hreflang = [];
-        foreach ($allTranslations as $tr) {
-            $path = "/{$contentType->slug}/{$tr->slug}";
-            $languageCode = $tr->language->code;
-            $hreflang[$languageCode] = URL::to(LocaleUrl::for($languageCode, $path));
-        }
+        $localeLinks = PublicLocaleLinks::post($post, $contentType);
 
         $seo = SeoProps::for(
             title: $translation->meta_title ?? $translation->title,
             description: $translation->meta_description,
             canonical: url()->current(),
-            hreflang: SeoProps::withXDefault($hreflang),
+            hreflang: SeoProps::withXDefault(PublicLocaleLinks::hreflang($localeLinks)),
             ogType: 'article',
             ogImage: $post->featured_image ? URL::to($post->featured_image) : null,
         );
@@ -107,7 +97,7 @@ class PostController extends Controller
         $translation->body = app(Sanitizer::class)->clean($translation->body ?? '');
 
         return Inertia::render('public/post-show', array_merge(
-            PublicLayoutProps::base(),
+            PublicLayoutProps::base($localeLinks),
             [
                 'region' => PublicLayoutProps::region(WidgetPlacementTarget::TYPE_CONTENT_SINGLE, (string) $post->id),
                 'post' => $translation->load('post.type'),

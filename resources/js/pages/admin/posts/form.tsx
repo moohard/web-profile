@@ -134,9 +134,8 @@ export default function PostForm({
 }) {
     const isEditing = post !== null;
 
-    /** Bahasa sumber default untuk terjemahan AI — 'id' bila ada, jika tidak bahasa aktif pertama. */
-    const defaultLanguage =
-        languages.find((lang) => lang.code === 'id') ?? languages[0];
+    /** Backend selalu mengurutkan bahasa default sebagai opsi pertama. */
+    const defaultLanguage = languages[0];
 
     const form = useForm<PostFormData>({
         type_id: post?.type_id ?? contentTypes[0]?.id ?? null,

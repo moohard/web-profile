@@ -35,36 +35,35 @@ class PublicLayoutProps
      * Props global untuk seluruh halaman publik (cache 1 jam per bahasa).
      * Menu & locale tidak bergantung konteks halaman, jadi aman di-cache.
      *
+     * @param  list<array{code: string, name: string, url: ?string, isCurrent: bool, isAvailable: bool}>  $localeLinks
      * @return array{
      *     locale: string,
-     *     locales: array<int, array{code: string, name: string}>,
+     *     homeUrl: string,
+     *     localeLinks: list<array{code: string, name: string, url: ?string, isCurrent: bool, isAvailable: bool}>,
      *     headerMenu: array<int, array<string, mixed>>,
      *     footerMenu: array<int, array<string, mixed>>
      * }
      */
-    public static function base(): array
+    public static function base(array $localeLinks): array
     {
         $langId = Language::current()->id;
 
-        return Cache::remember("public_layout.{$langId}", now()->addHour(), function () use ($langId) {
+        $cached = Cache::remember("public_layout.{$langId}", now()->addHour(), function () use ($langId) {
             $headerMenu = self::resolveMenu(MenuLocation::Header, $langId);
             $footerMenu = self::resolveMenu(MenuLocation::Footer, $langId);
-            $locales = Language::active()
-                ->get(['code', 'name'])
-                ->map(fn (Language $lang) => [
-                    'code' => $lang->code,
-                    'name' => $lang->name,
-                ])
-                ->values()
-                ->all();
 
             return [
                 'locale' => app()->getLocale(),
-                'locales' => $locales,
+                'homeUrl' => LocaleUrl::for(app()->getLocale(), '/'),
                 'headerMenu' => $headerMenu,
                 'footerMenu' => $footerMenu,
             ];
         });
+
+        return [
+            ...$cached,
+            'localeLinks' => $localeLinks,
+        ];
     }
 
     /**

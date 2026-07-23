@@ -175,7 +175,7 @@ export const NAV_ITEMS: NavItem[] = [
     },
     {
         label: 'Bahasa',
-        href: settings.languages.url(),
+        href: settings.languages.index.url(),
         icon: Languages,
         group: 'system',
         permission: 'admin.access-system',

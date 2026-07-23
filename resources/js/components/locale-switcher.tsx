@@ -4,39 +4,43 @@ import { Link } from '@inertiajs/react';
  * Pengalih locale dasar (dirender di layout publik pada Fase 6).
  */
 export function LocaleSwitcher({
-    currentLocale,
-    locales,
-    currentPath,
+    localeLinks,
 }: {
-    currentLocale: string;
-    locales: { code: string; name: string }[];
-    currentPath: string;
+    localeLinks: {
+        code: string;
+        name: string;
+        url: string | null;
+        isCurrent: boolean;
+        isAvailable: boolean;
+    }[];
 }) {
     return (
         <nav aria-label="Language" className="flex gap-2">
-            {locales.map((l) => {
-                const href =
-                    l.code === 'id'
-                        ? currentPath
-                        : `/${l.code}${currentPath === '/' ? '' : currentPath}`;
-
-                return (
+            {localeLinks.map((localeLink) =>
+                localeLink.isAvailable && localeLink.url ? (
                     <Link
-                        key={l.code}
-                        href={href}
-                        aria-current={
-                            l.code === currentLocale ? 'true' : undefined
-                        }
+                        key={localeLink.code}
+                        href={localeLink.url}
+                        aria-current={localeLink.isCurrent ? 'true' : undefined}
                         className={`rounded px-2 py-1 text-sm ${
-                            l.code === currentLocale
+                            localeLink.isCurrent
                                 ? 'bg-blue-100 font-semibold'
                                 : 'hover:bg-gray-100'
                         }`}
                     >
-                        {l.name}
+                        {localeLink.name}
                     </Link>
-                );
-            })}
+                ) : (
+                    <span
+                        key={localeLink.code}
+                        aria-disabled="true"
+                        title="Terjemahan belum tersedia"
+                        className="cursor-not-allowed rounded px-2 py-1 text-sm opacity-40"
+                    >
+                        {localeLink.name}
+                    </span>
+                ),
+            )}
         </nav>
     );
 }

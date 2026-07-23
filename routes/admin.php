@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\AiController;
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\ContentTypeController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\LanguageController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\PostController;
@@ -54,7 +55,15 @@ Route::get('/settings/ai', [AiConfigController::class, 'index'])
 Route::put('/settings/ai/{task}', [AiConfigController::class, 'update'])
     ->middleware('permission:admin.access-system')
     ->name('settings.ai.update');
-Route::get('/settings/languages', fn () => Inertia::render('admin/placeholder', ['section' => 'Bahasa']))->name('settings.languages')->middleware('permission:admin.access-system');
+Route::prefix('/settings/languages')
+    ->name('settings.languages.')
+    ->middleware('permission:admin.access-system')
+    ->group(function (): void {
+        Route::get('/', [LanguageController::class, 'index'])->name('index');
+        Route::post('/', [LanguageController::class, 'store'])->name('store');
+        Route::put('/{language}', [LanguageController::class, 'update'])->name('update');
+        Route::delete('/{language}', [LanguageController::class, 'destroy'])->name('destroy');
+    });
 Route::get('/content-types', [ContentTypeController::class, 'index'])->name('content-types.index');
 Route::get('/content-types/create', [ContentTypeController::class, 'create'])->name('content-types.create');
 Route::post('/content-types', [ContentTypeController::class, 'store'])->name('content-types.store');

@@ -6,20 +6,21 @@ use App\Http\Controllers\Public\HomeController;
 use App\Http\Controllers\Public\PageController;
 use App\Http\Controllers\Public\PostController;
 use App\Support\PublicPathResolver;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /**
  * Dispatch path publik (tanpa prefix locale) lewat single PublicPathResolver.
  *
- * Parameter diambil dari route name (bukan positional) supaya aman di bawah
- * prefix {locale} — CallableDispatcher meng-spread parameter berurutan.
- *
  * @return mixed
  */
-$dispatchPublicPath = function () {
-    $slug1 = (string) request()->route('slug1');
-    $slug2 = request()->route('slug2');
-    $path = $slug2 ? "{$slug1}/{$slug2}" : $slug1;
+$dispatchPublicPath = function (Request $request) {
+    $path = (string) $request->attributes->get('public_path', '');
+
+    if ($path === '') {
+        return app(HomeController::class)->index($request);
+    }
+
     $resolved = PublicPathResolver::resolve($path);
 
     return match ($resolved['kind']) {
@@ -35,11 +36,11 @@ $dispatchPublicPath = function () {
 };
 
 // Segment pertama yang tidak boleh tertangkap catch-all publik (rute sistem).
-// Pola dipakai di where('slug1', ...) — negative lookahead.
+// Pola dipakai pada parameter catch-all publicPath — negative lookahead.
 // Pakai (?:/|$) bukan $ saja: di compiled regex Symfony, $ merujuk ke akhir path
 // penuh, sehingga /admin/posts lolos ke catch-all (admin diikuti /posts, bukan end).
 $reserved = 'admin|login|logout|register|dashboard|settings|password|user|email|two-factor|sanctum|up';
-$publicSlug1 = '(?!(?:'.$reserved.')(?:/|$))[a-z0-9\-]+';
+$publicPath = '(?!(?:'.$reserved.')(?:/|$))[a-z0-9\-]+(?:/[a-z0-9\-]+){0,2}';
 
 // ── Sitemap (file statis di public/; rute agar tersedia di testing & tanpa static server) ──
 Route::get('/sitemap.xml', function () {
@@ -57,28 +58,11 @@ Route::get('/sitemap.xml', function () {
 
 // ── Beranda (locale default, tanpa prefix) ──
 Route::get('/', [HomeController::class, 'index'])->name('home');
-// ── Locale non-default ber-prefix (/en, …) — HARUS sebelum catch-all unprefixed
-// agar /en tidak tertangkap sebagai slug1. SetLocale (web middleware) set locale
-// dari segment-1; path di-resolve dari parameter rute (bukan path request).
-//
-// Constraint locale HARUS spesifik (bukan [a-z]{2,5}) supaya path seperti
-// /admin, /login, /dashboard tidak tertangkap sebagai "locale".
-// Seeder Fase 4: non-default aktif = `en`. Tambah kode di sini bila bahasa baru.
-Route::prefix('{locale}')
-    ->where(['locale' => 'en'])
-    ->group(function () use ($dispatchPublicPath, $publicSlug1) {
-        Route::get('/', [HomeController::class, 'index'])->name('home.locale');
-
-        Route::get('/{slug1}/{slug2?}', $dispatchPublicPath)
-            ->where('slug1', $publicSlug1)
-            ->where('slug2', '[a-z0-9\-]+')
-            ->name('public.resolve.locale');
-    });
-
-// ── Catch-all publik unprefixed: 1 atau 2 segment ──
-Route::get('/{slug1}/{slug2?}', $dispatchPublicPath)
-    ->where('slug1', $publicSlug1)
-    ->where('slug2', '[a-z0-9\-]+')
+// ── Catch-all publik: maksimal 2 segment konten + 1 prefix locale ──
+// Locale divalidasi dari tabel languages oleh SetLocale. Prefix bahasa default
+// diarahkan canonical, sedangkan bahasa inactive berakhir sebagai 404.
+Route::get('/{publicPath}', $dispatchPublicPath)
+    ->where('publicPath', $publicPath)
     ->name('public.resolve');
 
 // Dashboard (auth) — path statis

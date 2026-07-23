@@ -9,6 +9,8 @@ use App\Models\Language;
 use App\Models\PostTranslation;
 use App\Support\LocaleUrl;
 use App\Support\PublicLayoutProps;
+use App\Support\PublicLocaleLinks;
+use App\Support\Seo\SeoProps;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -58,11 +60,19 @@ class HomeController extends Controller
             'url' => LocaleUrl::for(app()->getLocale(), '/'.$t->post->type->slug.'/'.$t->slug),
         ])->values()->all();
 
+        $localeLinks = PublicLocaleLinks::home();
+
         return Inertia::render('public/home', array_merge(
-            PublicLayoutProps::base(),
+            PublicLayoutProps::base($localeLinks),
             [
                 'region' => PublicLayoutProps::region(),
                 'latestPosts' => $latestPosts,
+                'seo' => SeoProps::for(
+                    title: 'Beranda',
+                    description: null,
+                    canonical: url()->current(),
+                    hreflang: SeoProps::withXDefault(PublicLocaleLinks::hreflang($localeLinks)),
+                ),
                 'jsonLd' => $jsonLd,
             ],
         ));

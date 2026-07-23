@@ -57,6 +57,12 @@ it('Custom page mengirim props SEO dengan hreflang ID+EN dan x-default = bahasa 
         ->assertOk()
         ->assertInertia(fn (Assert $inertia) => $inertia
             ->component('public/page-show')
+            ->where('localeLinks.0.code', 'id')
+            ->where('localeLinks.0.url', '/profil')
+            ->where('localeLinks.0.isCurrent', true)
+            ->where('localeLinks.1.code', 'en')
+            ->where('localeLinks.1.url', '/en/profile')
+            ->where('localeLinks.1.isAvailable', true)
             ->has('seo.title')
             ->has('seo.canonical')
             ->has('seo.description')
@@ -64,5 +70,56 @@ it('Custom page mengirim props SEO dengan hreflang ID+EN dan x-default = bahasa 
             ->has('seo.hreflang.en')
             // x-default menunjuk URL bahasa default (id → '/profil'), bukan sekadar entri pertama array.
             ->where('seo.hreflang.x-default', fn (string $url): bool => str_ends_with($url, '/profil'))
+        );
+});
+
+it('localeLinks menandai translation Draft sebagai unavailable dan mengabaikan bahasa inactive', function () {
+    $page = Page::factory()->create();
+    $french = Language::factory()->create([
+        'code' => 'fr',
+        'name' => 'Français',
+        'is_active' => true,
+        'sort_order' => 3,
+    ]);
+    Language::factory()->create([
+        'code' => 'de',
+        'name' => 'Deutsch',
+        'is_active' => false,
+        'sort_order' => 4,
+    ]);
+
+    PageTranslation::factory()->create([
+        'page_id' => $page->id,
+        'language_id' => Language::idFor('id'),
+        'slug' => 'layanan',
+        'status' => 'Published',
+    ]);
+    PageTranslation::factory()->create([
+        'page_id' => $page->id,
+        'language_id' => $french->id,
+        'slug' => 'services',
+        'status' => 'Draft',
+    ]);
+    Language::flushCache();
+
+    $this->get('/layanan')
+        ->assertOk()
+        ->assertInertia(fn (Assert $inertia) => $inertia
+            ->has('localeLinks', 3)
+            ->where('localeLinks.2.code', 'fr')
+            ->where('localeLinks.2.url', null)
+            ->where('localeLinks.2.isAvailable', false)
+        );
+
+    $this->get('/fr/services')->assertNotFound();
+    $this->get('/de/uber-uns')->assertNotFound();
+});
+
+it('single Post memakai slug translation berbeda pada localeLinks', function () {
+    $this->get('/berita/selamat-datang')
+        ->assertOk()
+        ->assertInertia(fn (Assert $inertia) => $inertia
+            ->where('localeLinks.0.url', '/berita/selamat-datang')
+            ->where('localeLinks.1.url', '/en/berita/welcome')
         );
 });

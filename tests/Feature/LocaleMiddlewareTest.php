@@ -35,25 +35,37 @@ it('LocaleUrl::current mengikuti app locale', function () {
 });
 
 it('SetLocale middleware set locale dari segment URL non-default', function () {
-    $middleware = new SetLocale;
+    $middleware = app(SetLocale::class);
     $request = Request::create('/en/berita/slug', 'GET');
 
     $middleware->handle($request, function ($req) {
         expect(app()->getLocale())->toBe('en')
-            ->and($req->path())->toBe('berita/slug');
+            ->and($req->path())->toBe('en/berita/slug')
+            ->and($req->attributes->get('public_path'))->toBe('berita/slug');
 
         return response('ok');
     });
 });
 
 it('SetLocale middleware fallback ke default bila segment bukan locale', function () {
-    $middleware = new SetLocale;
+    $middleware = app(SetLocale::class);
     $request = Request::create('/berita/slug', 'GET');
 
     $middleware->handle($request, function ($req) {
         expect(app()->getLocale())->toBe('id')
-            ->and($req->path())->toBe('berita/slug');
+            ->and($req->path())->toBe('berita/slug')
+            ->and($req->attributes->get('public_path'))->toBe('berita/slug');
 
         return response('ok');
     });
+});
+
+it('SetLocale middleware mengarahkan prefix bahasa default ke URL canonical', function () {
+    $middleware = app(SetLocale::class);
+    $request = Request::create('/id/berita/slug?utm=abc', 'GET');
+
+    $response = $middleware->handle($request, fn () => response('tidak boleh dipanggil'));
+
+    expect($response->getStatusCode())->toBe(301)
+        ->and($response->headers->get('Location'))->toEndWith('/berita/slug?utm=abc');
 });
