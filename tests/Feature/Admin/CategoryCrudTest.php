@@ -36,6 +36,15 @@ it('GET /admin/categories menampilkan daftar kategori untuk admin', function () 
         );
 });
 
+it('Editor dapat membuka pengelolaan kategori', function () {
+    $editor = User::factory()->create()->assignRole(\App\Enums\UserRole::Editor->value);
+
+    $this->actingAs($editor)
+        ->get('/admin/categories')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('admin/categories/index'));
+});
+
 it('POST /admin/categories membuat kategori beserta translation per bahasa', function () {
     $idLang = Language::idFor('id');
     $enLang = Language::idFor('en');
@@ -103,7 +112,7 @@ it('DELETE menghapus kategori tanpa post terkait', function () {
     expect(Category::find($category->id))->toBeNull();
 });
 
-it('User tanpa content-types.viewAny mendapat 403', function () {
+it('User tanpa categories permissions mendapat 403', function () {
     $user = User::factory()->create()->givePermissionTo('access-admin');
     $idLang = Language::idFor('id');
     $category = Category::factory()->withTranslation('id', $idLang)->create();

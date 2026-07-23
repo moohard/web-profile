@@ -28,7 +28,7 @@ it('Admin mendapat permission Tampilan/Sistem untuk filter sidebar', function ()
         );
 });
 
-it('Editor tidak mendapat permission Tampilan/Sistem', function () {
+it('Editor mendapat permission konten dan AI tanpa Tampilan atau Sistem', function () {
     $editor = User::factory()->create()->assignRole(UserRole::Editor->value);
 
     $this->actingAs($editor)
@@ -38,7 +38,12 @@ it('Editor tidak mendapat permission Tampilan/Sistem', function () {
             ->where('auth.user.permissions', function ($permissions) {
                 $p = collect($permissions);
 
-                return ! $p->contains('admin.access-appearance')
+                return $p->contains('categories.viewAny')
+                    && $p->contains('tags.viewAny')
+                    && $p->contains('ai.create')
+                    && $p->contains('ai.update')
+                    && ! $p->contains('content-types.viewAny')
+                    && ! $p->contains('admin.access-appearance')
                     && ! $p->contains('admin.access-system')
                     && ! $p->contains('users.viewAny');
             })

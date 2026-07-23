@@ -36,6 +36,15 @@ it('GET /admin/tags menampilkan daftar tag untuk admin', function () {
         );
 });
 
+it('Editor dapat membuka pengelolaan tag', function () {
+    $editor = User::factory()->create()->assignRole(\App\Enums\UserRole::Editor->value);
+
+    $this->actingAs($editor)
+        ->get('/admin/tags')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('admin/tags/index'));
+});
+
 it('POST /admin/tags membuat tag beserta translation per bahasa', function () {
     $idLang = Language::idFor('id');
     $enLang = Language::idFor('en');
@@ -101,7 +110,7 @@ it('DELETE menghapus tag tanpa post terkait', function () {
     expect(Tag::find($tag->id))->toBeNull();
 });
 
-it('User tanpa content-types.viewAny mendapat 403', function () {
+it('User tanpa tags permissions mendapat 403', function () {
     $user = User::factory()->create()->givePermissionTo('access-admin');
     $idLang = Language::idFor('id');
     $tag = Tag::factory()->withTranslation('id', $idLang)->create();

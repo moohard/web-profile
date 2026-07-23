@@ -125,29 +125,28 @@ it('Author tidak boleh apply translation ke post (policy deny → 403)', functio
     expect($tr->fresh()->body)->toBe('old');
 });
 
-it('User tanpa permission ai.update mendapat 403 pada apply-translation', function () {
+it('Editor dapat apply translation pada post yang boleh diperbarui', function () {
     $editor = User::factory()->create()->assignRole(UserRole::Editor->value);
     $type = ContentType::where('slug', 'berita')->first();
     $post = Post::create(['type_id' => $type->id]);
     $tr = PostTranslation::create([
         'post_id' => $post->id,
         'language_id' => Language::idFor('en'),
-        'slug' => 'no-ai-perm',
+        'slug' => 'editor-ai-perm',
         'title' => 'Old',
         'body' => 'old',
         'status' => PostStatus::Draft,
     ]);
 
-    // Editor boleh update post, tetapi seeder tidak memberi ai.* → 403
     $this->actingAs($editor)->postJson('/admin/ai/apply-translation', [
         'entity_type' => 'PostTranslation',
         'entity_id' => $tr->id,
         'target_locale' => 'en',
         'field' => 'body',
-        'value' => 'should not save',
-    ])->assertForbidden();
+        'value' => 'editor suggestion accepted',
+    ])->assertOk();
 
-    expect($tr->fresh()->body)->toBe('old');
+    expect($tr->fresh()->body)->toBe('editor suggestion accepted');
 });
 
 it('Admin apply body men-sanitize script XSS', function () {

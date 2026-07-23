@@ -73,14 +73,14 @@ export const NAV_ITEMS: NavItem[] = [
         href: categories.index.url(),
         icon: FolderTree,
         group: 'content',
-        permission: 'content-types.viewAny',
+        permission: 'categories.viewAny',
     },
     {
         label: 'Tag',
         href: tags.index.url(),
         icon: Tag,
         group: 'content',
-        permission: 'content-types.viewAny',
+        permission: 'tags.viewAny',
     },
     {
         label: 'Galeri',
