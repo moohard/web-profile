@@ -122,6 +122,7 @@ it('PUT update post dengan new_tags menautkan tag baru tanpa menghapus tag exist
                 'language_id' => $this->idLang,
                 'title' => $translation->title,
                 'slug' => $translation->slug,
+                'body' => $translation->body,
                 'status' => 'Published',
             ]],
         ])

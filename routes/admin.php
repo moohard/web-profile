@@ -26,7 +26,7 @@ Route::prefix('posts')->name('posts.')->group(function (): void {
     Route::post('/', [PostController::class, 'store'])->name('store');
     Route::get('/{post}/edit', [PostController::class, 'edit'])->name('edit');
     Route::put('/{post}', [PostController::class, 'update'])->name('update');
-    Route::put('/{post}/restore', [PostController::class, 'restore'])->name('restore')->withTrashed();
+    Route::patch('/{post}/restore', [PostController::class, 'restore'])->name('restore')->withTrashed();
     Route::delete('/{post}', [PostController::class, 'destroy'])->name('destroy');
     Route::delete('/{post}/force-delete', [PostController::class, 'forceDelete'])->withTrashed()->name('force-delete');
 });
@@ -39,7 +39,7 @@ Route::prefix('pages')->name('pages.')->group(function (): void {
     Route::post('/', [PageController::class, 'store'])->name('store');
     Route::get('/{page}/edit', [PageController::class, 'edit'])->name('edit');
     Route::put('/{page}', [PageController::class, 'update'])->name('update');
-    Route::put('/{page}/restore', [PageController::class, 'restore'])->name('restore')->withTrashed();
+    Route::patch('/{page}/restore', [PageController::class, 'restore'])->name('restore')->withTrashed();
     Route::delete('/{page}', [PageController::class, 'destroy'])->name('destroy');
     Route::delete('/{page}/force-delete', [PageController::class, 'forceDelete'])->withTrashed()->name('force-delete');
 });

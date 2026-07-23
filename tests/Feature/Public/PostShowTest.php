@@ -33,12 +33,12 @@ it('single menampilkan kategori dan tag post', function () {
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->component('public/post-show')
-            ->where('category.name', 'Teknologi')
-            ->where('tags.0.name', 'AI')
+            ->where('post.category.name', 'Teknologi')
+            ->where('post.tags.0.name', 'AI')
         );
 });
 
-it('single TANPA kategori/tag → category null dan tags kosong (tidak error)', function () {
+it('single TANPA kategori/tag → post.category null dan post.tags kosong (tidak error)', function () {
     Post::factory()
         ->withTranslation('id', $this->idLang, ['slug' => 'tanpa-kategori'])
         ->create(['type_id' => $this->type->id]);
@@ -46,8 +46,8 @@ it('single TANPA kategori/tag → category null dan tags kosong (tidak error)', 
     $this->get('/berita/tanpa-kategori')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('category', null)
-            ->where('tags', [])
+            ->where('post.category', null)
+            ->where('post.tags', [])
         );
 });
 

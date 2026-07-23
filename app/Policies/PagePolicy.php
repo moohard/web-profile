@@ -65,11 +65,13 @@ class PagePolicy
 
     public function restore(User $user, Page $page): bool
     {
-        return $user->can('pages.update');
+        return $user->hasAnyRole([UserRole::Admin->value, UserRole::Editor->value])
+            && $user->can('pages.update');
     }
 
     public function forceDelete(User $user, Page $page): bool
     {
-        return $user->can('pages.delete');
+        return $user->hasAnyRole([UserRole::Admin->value, UserRole::Editor->value])
+            && $user->can('pages.delete');
     }
 }

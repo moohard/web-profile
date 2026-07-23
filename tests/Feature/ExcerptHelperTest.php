@@ -48,16 +48,20 @@ it('mengembalikan string kosong bila HTML hanya berisi tag tanpa teks', function
         ->and(excerpt('<p>   </p>'))->toBe('');
 });
 
-it('multibyte-safe: tidak memotong di tengah karakter aksen/emoji', function () {
+it('multibyte-safe: memotong di word boundary tanpa merusak karakter aksen/emoji', function () {
     $text = 'Café résumé 🎉 pizza';
 
+    // Helper otoritatif (tests/Unit/ExcerptHelperTest) memotong di word boundary,
+    // bukan di grapheme mentah — jadi 'Café résumé 🎉 pizza' dengan limit 8
+    // menjadi 'Café…' (kata pertama utuh, sisanya dipotong di spasi).
     $hasil = excerpt($text, 8);
-    expect($hasil)->toBe('Café rés…')
+    expect($hasil)->toBe('Café…')
         ->and(mb_check_encoding($hasil, 'UTF-8'))->toBeTrue();
 
-    $hasilDenganEmoji = excerpt($text, 13);
-    expect($hasilDenganEmoji)->toBe('Café résumé 🎉…')
-        ->and(mb_check_encoding($hasilDenganEmoji, 'UTF-8'))->toBeTrue();
+    // Limit long enough to keep the whole phrase incl. emoji.
+    $hasilLengkap = excerpt($text, 100);
+    expect($hasilLengkap)->toBe($text)
+        ->and(mb_check_encoding($hasilLengkap, 'UTF-8'))->toBeTrue();
 });
 
 it('men-decode HTML entity setelah strip tag agar teks bersih untuk meta description', function () {

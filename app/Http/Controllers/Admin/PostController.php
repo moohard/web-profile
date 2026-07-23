@@ -92,6 +92,7 @@ class PostController extends Controller
 
         $user = $request->user();
         $currentLanguageId = Language::current()->id;
+        $languages = Language::active()->get(['id', 'code', 'name']);
         $posts = Post::onlyTrashed()
             ->with(['type.translations', 'translations', 'author'])
             ->when(
@@ -103,7 +104,7 @@ class PostController extends Controller
             ->latest('deleted_at')
             ->paginate(20)
             ->withQueryString()
-            ->through(fn (Post $post): array => $this->toTrashSummary($post, $currentLanguageId, $user));
+            ->through(fn (Post $post): array => $this->toTrashSummary($post, $currentLanguageId, $user, $languages));
 
         return Inertia::render('admin/posts/trash', [
             'posts' => $posts,
@@ -314,7 +315,7 @@ class PostController extends Controller
 
     /**
      * @param  Collection<int, Language>  $languages
-     * @return array{id: int, title: string, typeName: string, typeSlug: string, status: ?string, statuses: array<int, array{code: string, name: string, status: ?string}>, author: string, updated_at: string, editUrl: string}
+     * @return array{id: int, title: string, typeName: string, typeSlug: string, status: ?string, statuses: array<int, array{code: string, label: string, name: string, status: ?string}>, author: string, updated_at: string, editUrl: string}
      */
     private function toSummary(
         Post $post,
@@ -339,6 +340,7 @@ class PostController extends Controller
 
                     return [
                         'code' => $language->code,
+                        'label' => strtoupper($language->code),
                         'name' => $language->name,
                         'status' => $tr?->status?->value,
                     ];
@@ -352,9 +354,10 @@ class PostController extends Controller
     }
 
     /**
-     * @return array{id: int, title: string, typeName: string, author: string, deleted_at: string, canRestore: bool, canForceDelete: bool}
+     * @param  Collection<int, Language>  $languages
+     * @return array{id: int, title: string, typeName: string, author: string, deleted_at: string, canRestore: bool, canForceDelete: bool, statuses: array<int, array{code: string, label: string, name: string, status: ?string}>}
      */
-    private function toTrashSummary(Post $post, int $currentLanguageId, ?User $user): array
+    private function toTrashSummary(Post $post, int $currentLanguageId, ?User $user, Collection $languages): array
     {
         $translation = $post->translations->firstWhere('language_id', $currentLanguageId)
             ?? $post->translations->first();
@@ -369,6 +372,19 @@ class PostController extends Controller
             'deleted_at' => $post->deleted_at?->toIso8601String() ?? '',
             'canRestore' => $user?->can('restore', $post) ?? false,
             'canForceDelete' => $user?->can('forceDelete', $post) ?? false,
+            'statuses' => $languages
+                ->map(function (Language $language) use ($post): array {
+                    $tr = $post->translations->firstWhere('language_id', $language->id);
+
+                    return [
+                        'code' => $language->code,
+                        'label' => strtoupper($language->code),
+                        'name' => $language->name,
+                        'status' => $tr?->status?->value,
+                    ];
+                })
+                ->values()
+                ->all(),
         ];
     }
 

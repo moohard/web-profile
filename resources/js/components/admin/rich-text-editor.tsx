@@ -19,6 +19,7 @@ type RichTextEditorProps = {
     id?: string;
     value: string;
     onChange: (html: string) => void;
+    ariaLabel?: string;
 };
 
 const HEADING_LEVELS = [1, 2, 3] as const;
@@ -38,7 +39,7 @@ const HEADING_LEVELS = [1, 2, 3] as const;
  * tak ada di allowlist rich-text) — apa yang diketik = yang tersimpan setelah
  * sanitasi server.
  */
-export function RichTextEditor({ id, value, onChange }: RichTextEditorProps) {
+export function RichTextEditor({ id, value, onChange, ariaLabel }: RichTextEditorProps) {
     const editor = useEditor({
         immediatelyRender: false,
         extensions: [
@@ -56,6 +57,7 @@ export function RichTextEditor({ id, value, onChange }: RichTextEditorProps) {
         editorProps: {
             attributes: {
                 ...(id ? { id } : {}),
+                ...(ariaLabel ? { 'aria-label': ariaLabel } : {}),
                 class: 'prose min-h-[240px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none',
             },
         },
@@ -74,6 +76,8 @@ export function RichTextEditor({ id, value, onChange }: RichTextEditorProps) {
         return (
             <div
                 id={id}
+                aria-label={ariaLabel}
+                aria-busy="true"
                 className="min-h-[240px] w-full animate-pulse rounded-md border border-input bg-muted"
             />
         );

@@ -83,13 +83,13 @@ it('Trash: Author hanya melihat post miliknya sendiri yang sudah di-trash', func
         );
 });
 
-it('PUT restore mengembalikan post dari trash', function () {
+it('PATCH restore mengembalikan post dari trash', function () {
     $admin = User::where('email', config('admin.email'))->firstOrFail();
     $post = Post::factory()->withTranslation('id', $this->idLang)->create(['type_id' => $this->type->id]);
     $post->delete();
 
     $this->actingAs($admin)
-        ->put("/admin/posts/{$post->id}/restore")
+        ->patch("/admin/posts/{$post->id}/restore")
         ->assertRedirect();
 
     expect(Post::find($post->id))->not->toBeNull()
@@ -102,28 +102,39 @@ it('Editor boleh restore post siapa pun', function () {
     $post->delete();
 
     $this->actingAs($editor)
-        ->put("/admin/posts/{$post->id}/restore")
+        ->patch("/admin/posts/{$post->id}/restore")
         ->assertRedirect();
 
     expect(Post::find($post->id))->not->toBeNull();
 });
 
-it('Author tidak boleh restore post — meski miliknya sendiri', function () {
+it('Author boleh restore post miliknya sendiri, tapi tidak post orang lain', function () {
     $author = User::factory()->create()->assignRole(UserRole::Author->value);
-    $post = Post::factory()->withTranslation('id', $this->idLang)->create([
+    $other = User::factory()->create()->assignRole(UserRole::Author->value);
+    $ownPost = Post::factory()->withTranslation('id', $this->idLang)->create([
         'type_id' => $this->type->id,
         'author_id' => $author->id,
     ]);
-    $post->delete();
+    $otherPost = Post::factory()->withTranslation('id', $this->idLang)->create([
+        'type_id' => $this->type->id,
+        'author_id' => $other->id,
+    ]);
+    $ownPost->delete();
+    $otherPost->delete();
 
     $this->actingAs($author)
-        ->put("/admin/posts/{$post->id}/restore")
+        ->patch("/admin/posts/{$ownPost->id}/restore")
+        ->assertRedirect();
+
+    $this->actingAs($author)
+        ->patch("/admin/posts/{$otherPost->id}/restore")
         ->assertForbidden();
 
-    expect(Post::withTrashed()->find($post->id)->trashed())->toBeTrue();
+    expect(Post::find($ownPost->id)->deleted_at)->toBeNull()
+        ->and(Post::withTrashed()->find($otherPost->id)->trashed())->toBeTrue();
 });
 
-it('DELETE force menghapus post permanen beserta translations & media', function () {
+it('DELETE force-delete menghapus post permanen beserta translations & media', function () {
     $admin = User::where('email', config('admin.email'))->firstOrFail();
     $post = Post::factory()->withTranslation('id', $this->idLang)->create(['type_id' => $this->type->id]);
     $media = $post->addMedia(UploadedFile::fake()->image('x.jpg', 100, 100))->toMediaCollection('featured');
@@ -131,7 +142,7 @@ it('DELETE force menghapus post permanen beserta translations & media', function
     $post->delete();
 
     $this->actingAs($admin)
-        ->delete("/admin/posts/{$post->id}/force")
+        ->delete("/admin/posts/{$post->id}/force-delete")
         ->assertRedirect();
 
     expect(Post::withTrashed()->find($post->id))->toBeNull()
@@ -148,7 +159,7 @@ it('Author tidak boleh forceDelete post', function () {
     $post->delete();
 
     $this->actingAs($author)
-        ->delete("/admin/posts/{$post->id}/force")
+        ->delete("/admin/posts/{$post->id}/force-delete")
         ->assertForbidden();
 
     expect(Post::withTrashed()->find($post->id))->not->toBeNull();

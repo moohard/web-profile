@@ -22,11 +22,15 @@ if (! function_exists('excerpt')) {
             ' ',
             $html,
         ) ?? $html;
-        $plainText = html_entity_decode(
-            strip_tags($withBlockSpacing),
+        // Decode entity SEBELUM strip_tags supaya payload yang bersembunyi di
+        // entity (mis. &lt;script&gt;) terurai dulu lalu dilucuti sebagai tag —
+        // mencegah tag re-injection pada output meta description/excerpt.
+        $decoded = html_entity_decode(
+            $withBlockSpacing,
             ENT_QUOTES | ENT_HTML5,
             'UTF-8',
         );
+        $plainText = strip_tags($decoded);
         $normalized = Str::squish($plainText);
 
         if ($normalized === '') {

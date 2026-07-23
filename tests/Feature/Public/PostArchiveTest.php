@@ -73,19 +73,18 @@ it('item arsip menyertakan excerpt dan published_at terformat', function () {
         );
 });
 
-it('item arsip TANPA featured media → image_url dan image_srcset null (tidak error)', function () {
+it('item arsip TANPA featured media → featured null (tidak error)', function () {
     Post::factory()->withTranslation('id', $this->idLang, ['title' => 'Tanpa Gambar'])
         ->create(['type_id' => $this->type->id]);
 
     $this->get('/pengumuman')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('posts.data.0.image_url', null)
-            ->where('posts.data.0.image_srcset', null)
+            ->where('posts.data.0.featured', null)
         );
 });
 
-it('item arsip DENGAN featured media → image_url terisi dari konversi webp_medium', function () {
+it('item arsip DENGAN featured media → featured.src terisi dari konversi webp_large', function () {
     $post = Post::factory()->withTranslation('id', $this->idLang, ['title' => 'Ada Gambar'])
         ->create(['type_id' => $this->type->id]);
     $post->addMedia(UploadedFile::fake()->image('archive.jpg', 1200, 800))->toMediaCollection('featured');
@@ -94,8 +93,8 @@ it('item arsip DENGAN featured media → image_url terisi dari konversi webp_med
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
             ->where(
-                'posts.data.0.image_url',
-                fn (?string $url): bool => $url !== null && str_contains($url, 'webp_medium'),
+                'posts.data.0.featured.src',
+                fn (string $url): bool => str_contains($url, 'webp_large'),
             )
         );
 });

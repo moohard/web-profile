@@ -68,13 +68,20 @@ it('Admin dan Editor boleh restore & forceDelete post', function () {
         ->and($editor->can('forceDelete', $post))->toBeTrue();
 });
 
-it('Author tidak boleh restore & forceDelete post — meski miliknya sendiri', function () {
+it('Author boleh restore post miliknya sendiri, tapi tidak boleh forceDelete dan tidak boleh restore post orang lain', function () {
     $author = User::factory()->create()->assignRole(UserRole::Author->value);
-    $post = Post::factory()->create([
+    $other = User::factory()->create()->assignRole(UserRole::Author->value);
+    $ownPost = Post::factory()->create([
         'type_id' => $this->type->id,
         'author_id' => $author->id,
     ]);
+    $otherPost = Post::factory()->create([
+        'type_id' => $this->type->id,
+        'author_id' => $other->id,
+    ]);
 
-    expect($author->can('restore', $post))->toBeFalse()
-        ->and($author->can('forceDelete', $post))->toBeFalse();
+    expect($author->can('restore', $ownPost))->toBeTrue()
+        ->and($author->can('forceDelete', $ownPost))->toBeFalse()
+        ->and($author->can('restore', $otherPost))->toBeFalse()
+        ->and($author->can('forceDelete', $otherPost))->toBeFalse();
 });

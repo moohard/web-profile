@@ -62,14 +62,14 @@ it('GET /admin/pages/trash menampilkan hanya halaman yang sudah di-trash', funct
         );
 });
 
-it('PUT restore mengembalikan halaman dari trash', function () {
+it('PATCH restore mengembalikan halaman dari trash', function () {
     $admin = User::where('email', config('admin.email'))->firstOrFail();
     $page = Page::factory()->create();
     PageTranslation::factory()->for($page)->create(['language_id' => $this->idLang]);
     $page->delete();
 
     $this->actingAs($admin)
-        ->put("/admin/pages/{$page->id}/restore")
+        ->patch("/admin/pages/{$page->id}/restore")
         ->assertRedirect();
 
     expect(Page::find($page->id))->not->toBeNull()
@@ -82,7 +82,7 @@ it('Editor boleh restore halaman', function () {
     $page->delete();
 
     $this->actingAs(pageTrashEditor())
-        ->put("/admin/pages/{$page->id}/restore")
+        ->patch("/admin/pages/{$page->id}/restore")
         ->assertRedirect();
 
     expect(Page::find($page->id))->not->toBeNull();
@@ -95,20 +95,20 @@ it('User tanpa role Admin/Editor (hanya permission pages.delete ad hoc) tidak bo
     $page->delete();
 
     $this->actingAs($user)
-        ->put("/admin/pages/{$page->id}/restore")
+        ->patch("/admin/pages/{$page->id}/restore")
         ->assertForbidden();
 
     expect(Page::withTrashed()->find($page->id)->trashed())->toBeTrue();
 });
 
-it('DELETE force menghapus halaman permanen beserta translations', function () {
+it('DELETE force-delete menghapus halaman permanen beserta translations', function () {
     $admin = User::where('email', config('admin.email'))->firstOrFail();
     $page = Page::factory()->create();
     PageTranslation::factory()->for($page)->create(['language_id' => $this->idLang]);
     $page->delete();
 
     $this->actingAs($admin)
-        ->delete("/admin/pages/{$page->id}/force")
+        ->delete("/admin/pages/{$page->id}/force-delete")
         ->assertRedirect();
 
     expect(Page::withTrashed()->find($page->id))->toBeNull()
@@ -122,7 +122,7 @@ it('User tanpa role Admin/Editor tidak boleh forceDelete halaman', function () {
     $page->delete();
 
     $this->actingAs($user)
-        ->delete("/admin/pages/{$page->id}/force")
+        ->delete("/admin/pages/{$page->id}/force-delete")
         ->assertForbidden();
 
     expect(Page::withTrashed()->find($page->id))->not->toBeNull();

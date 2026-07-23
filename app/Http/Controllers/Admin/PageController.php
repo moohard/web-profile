@@ -229,7 +229,7 @@ class PageController extends Controller
                 [
                     'title' => $translation['title'],
                     'slug' => $slug,
-                    'content' => ['html' => $this->sanitizer->clean($content)],
+                    'content' => ['html' => $this->sanitizer->cleanForPageMode($content, $page->mode)],
                     'hero_heading' => $translation['hero_heading'] ?? null,
                     'hero_subheading' => $translation['hero_subheading'] ?? null,
                     'hero_cta_text' => $translation['hero_cta_text'] ?? null,
