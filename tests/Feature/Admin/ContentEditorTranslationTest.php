@@ -140,6 +140,113 @@ it('validasi menolak bila bahasa default belum terisi judulnya', function () {
         ->and(PostTranslation::query()->where('title', 'Only English')->exists())->toBeFalse();
 });
 
+it('translation Published wajib memiliki title dan body', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [
+            [
+                'language_id' => $this->idLang,
+                'title' => 'Judul Indonesia',
+                'body' => '<p>Isi Indonesia</p>',
+                'status' => 'Draft',
+            ],
+            [
+                'language_id' => $this->enLang,
+                'title' => '',
+                'body' => '',
+                'status' => 'Published',
+            ],
+        ],
+    ])->assertSessionHasErrors([
+        'translations.1.title',
+        'translations.1.body',
+    ]);
+});
+
+it('translation Draft kosong selain bahasa default diabaikan', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [
+            [
+                'language_id' => $this->idLang,
+                'title' => 'Hanya Bahasa Default',
+                'status' => 'Draft',
+            ],
+            [
+                'language_id' => $this->enLang,
+                'title' => '',
+                'slug' => '',
+                'body' => '',
+                'status' => 'Draft',
+                'published_at' => null,
+                'meta_title' => '',
+                'meta_description' => '',
+            ],
+        ],
+    ])->assertRedirect(route('admin.posts.index'));
+
+    $post = Post::query()->latest('id')->firstOrFail();
+
+    expect($post->translations()->count())->toBe(1)
+        ->and($post->translations()->first()->language_id)->toBe($this->idLang);
+});
+
+it('translation Draft non-default boleh disimpan tanpa title', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [
+            [
+                'language_id' => $this->idLang,
+                'title' => 'Bahasa Default',
+                'status' => 'Draft',
+            ],
+            [
+                'language_id' => $this->enLang,
+                'body' => '<p>English work in progress</p>',
+                'status' => 'Draft',
+            ],
+        ],
+    ])->assertRedirect(route('admin.posts.index'));
+
+    $translation = PostTranslation::query()
+        ->where('language_id', $this->enLang)
+        ->latest('id')
+        ->firstOrFail();
+
+    expect($translation->title)->toBe('')
+        ->and($translation->body)->toBe('<p>English work in progress</p>')
+        ->and($translation->status)->toBe(PostStatus::Draft);
+});
+
+it('status translation default ke Draft ketika tidak dikirim', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [[
+            'language_id' => $this->idLang,
+            'title' => 'Draft Otomatis',
+        ]],
+    ])->assertRedirect(route('admin.posts.index'));
+
+    expect(PostTranslation::query()->where('title', 'Draft Otomatis')->value('status'))
+        ->toBe(PostStatus::Draft);
+});
+
+it('validasi membatasi panjang metadata SEO', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [[
+            'language_id' => $this->idLang,
+            'title' => 'Metadata Panjang',
+            'status' => 'Draft',
+            'meta_title' => str_repeat('a', 61),
+            'meta_description' => str_repeat('b', 161),
+        ]],
+    ])->assertSessionHasErrors([
+        'translations.0.meta_title',
+        'translations.0.meta_description',
+    ]);
+});
+
 it('PUT /admin/posts/{post} meng-upsert translations, sync tags, dan update kategori/featured', function () {
     $post = Post::factory()->withTranslation('id', $this->idLang, ['title' => 'Lama'])->create(['type_id' => $this->type->id]);
     $category = Category::factory()->withTranslation('id', $this->idLang)->create();

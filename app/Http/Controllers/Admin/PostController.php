@@ -172,19 +172,22 @@ class PostController extends Controller
      * tidak menghapus translation bahasa yang tak disertakan di request.
      * Slug dijaga unik per bahasa (constraint DB: unique(language_id, slug)).
      *
-     * @param  list<array{language_id: int, title: string, slug?: ?string, body?: ?string, status: string, published_at?: ?string, meta_title?: ?string, meta_description?: ?string}>  $translations
+     * @param  list<array{language_id: int, title?: ?string, slug?: ?string, body?: ?string, status: string, published_at?: ?string, meta_title?: ?string, meta_description?: ?string}>  $translations
      */
     private function syncTranslations(Post $post, array $translations): void
     {
         foreach ($translations as $translation) {
             $languageId = (int) $translation['language_id'];
+            $title = (string) ($translation['title'] ?? '');
 
             $existing = PostTranslation::query()
                 ->where('post_id', $post->id)
                 ->where('language_id', $languageId)
                 ->first();
 
-            $slugSource = $translation['slug'] ?? $translation['title'];
+            $slugSource = filled($translation['slug'] ?? null)
+                ? (string) $translation['slug']
+                : (filled($title) ? $title : "draft-{$post->id}-{$languageId}");
             $slug = ContentSlug::unique(
                 PostTranslation::class,
                 $slugSource,
@@ -198,7 +201,7 @@ class PostController extends Controller
             $post->translations()->updateOrCreate(
                 ['language_id' => $languageId],
                 [
-                    'title' => $translation['title'],
+                    'title' => $title,
                     'slug' => $slug,
                     'body' => $body !== null ? $this->sanitizer->clean($body) : null,
                     'status' => $translation['status'],
