@@ -37,7 +37,7 @@ it('soft delete Post mempertahankan translation dan media di Trash', function ()
         ->create(['type_id' => $contentType->id]);
     $media = $post
         ->addMedia(UploadedFile::fake()->image('featured.jpg'))
-        ->toMediaCollection('featured_image');
+        ->toMediaCollection('featured');
 
     $post->delete();
 
@@ -241,7 +241,7 @@ it('force-delete Post membersihkan relasi target dan media secara permanen', fun
     $translationId = $post->translations()->value('id');
     $media = $post
         ->addMedia(UploadedFile::fake()->image('permanent-post.jpg'))
-        ->toMediaCollection('featured_image');
+        ->toMediaCollection('featured');
     $mediaPath = $media->getPathRelativeToRoot();
     $menuItem = MenuItem::factory()->create([
         'link_type' => LinkType::ContentSingle,

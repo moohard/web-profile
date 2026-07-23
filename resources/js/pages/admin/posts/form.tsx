@@ -1,4 +1,5 @@
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, useHttp } from '@inertiajs/react';
+import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { AiSuggestButton } from '@/components/admin/ai-suggest-button';
 import LanguageTabs from '@/components/admin/language-tabs';
@@ -20,6 +21,7 @@ import {
 import { dashboard } from '@/routes/admin';
 import aiRoutes from '@/routes/admin/ai';
 import postsRoutes, { index as postsIndex } from '@/routes/admin/posts';
+import { quickStore } from '@/routes/admin/tags';
 
 type ContentTypeOption = {
     id: number;
@@ -38,6 +40,13 @@ type TagOption = {
     name: string;
 };
 
+type FeaturedMedia = {
+    id: number;
+    url: string;
+    thumb_url: string;
+    alt: string;
+};
+
 type PostTranslationData = {
     language_id: number;
     title: string;
@@ -53,7 +62,7 @@ type PostData = {
     id: number;
     type_id: number;
     category_id: number | null;
-    featured_image: string | null;
+    featured_media: FeaturedMedia | null;
     tag_ids: number[];
     /** Keyed by kode bahasa (mis. 'id', 'en') — bukan language_id. */
     translations: Record<string, PostTranslationData>;
@@ -74,8 +83,17 @@ type PostFormData = {
     type_id: number | null;
     category_id: number | null;
     tags: number[];
-    featured_image: string;
+    featured_media_id: number | null;
     translations: Record<number, TranslationFormState>;
+};
+
+type QuickTagForm = {
+    language_id: number;
+    name: string;
+};
+
+type QuickTagResponse = TagOption & {
+    created: boolean;
 };
 
 /** Slugify ringan tanpa dependensi tambahan — dipakai untuk auto-slug dari judul. */
@@ -137,13 +155,20 @@ export default function PostForm({
 
     /** Backend selalu mengurutkan bahasa default sebagai opsi pertama. */
     const defaultLanguage = languages[0];
+    const [availableTags, setAvailableTags] = useState(tags);
+    const [featuredPreview, setFeaturedPreview] =
+        useState<FeaturedMedia | null>(post?.featured_media ?? null);
 
     const form = useForm<PostFormData>({
         type_id: post?.type_id ?? contentTypes[0]?.id ?? null,
         category_id: post?.category_id ?? null,
         tags: post?.tag_ids ?? [],
-        featured_image: post?.featured_image ?? '',
+        featured_media_id: post?.featured_media?.id ?? null,
         translations: buildInitialTranslations(languages, post),
+    });
+    const quickTag = useHttp<QuickTagForm, QuickTagResponse>({
+        language_id: defaultLanguage?.id ?? 0,
+        name: '',
     });
 
     // Error dari backend memakai key index-array `translations.{index}.field` —
@@ -176,6 +201,29 @@ export default function PostForm({
                 ? [...form.data.tags, tagId]
                 : form.data.tags.filter((id) => id !== tagId),
         );
+    }
+
+    function createTag() {
+        if (quickTag.data.name.trim() === '') {
+            return;
+        }
+
+        quickTag
+            .post(quickStore.url(), {
+                onSuccess: (tag) => {
+                    setAvailableTags((current) =>
+                        current.some((item) => item.id === tag.id)
+                            ? current
+                            : [...current, { id: tag.id, name: tag.name }],
+                    );
+                    form.setData(
+                        'tags',
+                        Array.from(new Set([...form.data.tags, tag.id])),
+                    );
+                    quickTag.reset('name');
+                },
+            })
+            .catch(() => undefined);
     }
 
     function submit(e: FormEvent) {
@@ -659,12 +707,12 @@ export default function PostForm({
                             <div className="space-y-1">
                                 <Label>Tag</Label>
                                 <div className="space-y-1 rounded-md border p-3">
-                                    {tags.length === 0 && (
+                                    {availableTags.length === 0 && (
                                         <p className="text-sm text-muted-foreground">
                                             Belum ada tag.
                                         </p>
                                     )}
-                                    {tags.map((tag) => (
+                                    {availableTags.map((tag) => (
                                         <div
                                             key={tag.id}
                                             className="flex items-center gap-2"
@@ -690,39 +738,91 @@ export default function PostForm({
                                         </div>
                                     ))}
                                 </div>
+                                <div className="flex gap-2">
+                                    <Input
+                                        value={quickTag.data.name}
+                                        onChange={(event) =>
+                                            quickTag.setData(
+                                                'name',
+                                                event.target.value,
+                                            )
+                                        }
+                                        onKeyDown={(event) => {
+                                            if (event.key === 'Enter') {
+                                                event.preventDefault();
+                                                createTag();
+                                            }
+                                        }}
+                                        placeholder="Ketik nama tag baru"
+                                        aria-label="Nama tag baru"
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={createTag}
+                                        disabled={
+                                            quickTag.processing ||
+                                            quickTag.data.name.trim() === ''
+                                        }
+                                    >
+                                        {quickTag.processing
+                                            ? 'Menambah…'
+                                            : 'Tambah tag'}
+                                    </Button>
+                                </div>
+                                <InputError
+                                    message={
+                                        typeof quickTag.errors.name === 'string'
+                                            ? quickTag.errors.name
+                                            : undefined
+                                    }
+                                />
                                 <InputError message={form.errors.tags} />
                             </div>
 
                             <div className="space-y-1">
                                 <Label>Gambar unggulan</Label>
                                 <div className="space-y-2">
-                                    {form.data.featured_image && (
+                                    {featuredPreview && (
                                         <img
-                                            src={form.data.featured_image}
-                                            alt="Pratinjau gambar unggulan"
+                                            src={
+                                                featuredPreview.thumb_url ||
+                                                featuredPreview.url
+                                            }
+                                            alt={
+                                                featuredPreview.alt ||
+                                                'Pratinjau gambar unggulan'
+                                            }
                                             className="aspect-video w-full rounded-md border object-cover"
                                         />
                                     )}
                                     <div className="flex gap-2">
                                         <MediaPicker
-                                            onPick={(_mediaId, url) =>
+                                            onPick={(mediaId, url) => {
                                                 form.setData(
-                                                    'featured_image',
+                                                    'featured_media_id',
+                                                    mediaId,
+                                                );
+                                                setFeaturedPreview({
+                                                    id: mediaId,
                                                     url,
-                                                )
-                                            }
+                                                    thumb_url: url,
+                                                    alt: '',
+                                                });
+                                            }}
                                         />
-                                        {form.data.featured_image && (
+                                        {featuredPreview && (
                                             <Button
                                                 type="button"
                                                 variant="outline"
                                                 size="sm"
-                                                onClick={() =>
+                                                onClick={() => {
                                                     form.setData(
-                                                        'featured_image',
-                                                        '',
-                                                    )
-                                                }
+                                                        'featured_media_id',
+                                                        null,
+                                                    );
+                                                    setFeaturedPreview(null);
+                                                }}
                                             >
                                                 Hapus
                                             </Button>
@@ -730,7 +830,7 @@ export default function PostForm({
                                     </div>
                                 </div>
                                 <InputError
-                                    message={form.errors.featured_image}
+                                    message={form.errors.featured_media_id}
                                 />
                             </div>
                         </div>

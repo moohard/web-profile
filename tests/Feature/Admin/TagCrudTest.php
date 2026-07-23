@@ -147,3 +147,61 @@ it('User tanpa tags permissions mendapat 403', function () {
     ])->assertForbidden();
     $this->actingAs($user)->delete("/admin/tags/{$tag->id}")->assertForbidden();
 });
+
+it('quick-create membuat tag, mengembalikan JSON, dan memakai kembali nama duplikat case-insensitive', function () {
+    $editor = User::factory()->create()->assignRole(UserRole::Editor->value);
+    $languageId = Language::idFor('id');
+
+    $first = $this->actingAs($editor)->postJson('/admin/tags/quick-store', [
+        'language_id' => $languageId,
+        'name' => '  Transformasi Digital  ',
+    ]);
+
+    $first->assertCreated()
+        ->assertJsonPath('name', 'Transformasi Digital')
+        ->assertJsonPath('created', true);
+
+    $second = $this->actingAs($editor)->postJson('/admin/tags/quick-store', [
+        'language_id' => $languageId,
+        'name' => 'transformasi digital',
+    ]);
+
+    $second->assertOk()
+        ->assertJsonPath('id', $first->json('id'))
+        ->assertJsonPath('created', false);
+
+    expect(TagTranslation::query()
+        ->where('language_id', $languageId)
+        ->whereRaw('lower(name) = ?', ['transformasi digital'])
+        ->count())->toBe(1);
+});
+
+it('quick-create memerlukan permission tags.create dan bahasa aktif', function () {
+    $user = User::factory()->create()->givePermissionTo('access-admin');
+    $inactiveLanguage = Language::factory()->create([
+        'code' => 'fr',
+        'name' => 'Français',
+        'is_active' => false,
+    ]);
+
+    $this->actingAs($user)->postJson('/admin/tags/quick-store', [
+        'language_id' => Language::idFor('id'),
+        'name' => 'Ditolak',
+    ])->assertForbidden();
+
+    $editor = User::factory()->create()->assignRole(UserRole::Editor->value);
+    $this->actingAs($editor)->postJson('/admin/tags/quick-store', [
+        'language_id' => $inactiveLanguage->id,
+        'name' => 'Tidak aktif',
+    ])->assertUnprocessable()->assertJsonValidationErrors('language_id');
+});
+
+it('quick-create mengunci baris bahasa stabil dan mengulang transaksi saat deadlock', function () {
+    $source = file_get_contents(app_path('Actions/Tags/FindOrCreateTag.php'));
+
+    expect($source)
+        ->toContain('Language::query()')
+        ->toContain('->orderBy(\'id\')')
+        ->toContain('->lockForUpdate()')
+        ->toContain('attempts: 3');
+});

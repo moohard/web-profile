@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Actions\Posts\PermanentlyDeletePost;
+use App\Actions\Posts\SyncPostFeaturedMedia;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PostRequest;
@@ -16,10 +17,13 @@ use App\Models\PostTranslation;
 use App\Models\Tag;
 use App\Models\User;
 use App\Services\Html\Sanitizer;
+use App\Support\Categories\CategoryTree;
 use App\Support\ContentSlug;
+use App\Support\Posts\PostFeaturedImage;
 use App\Support\PublicLayoutProps;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -37,6 +41,7 @@ class PostController extends Controller
 
         $user = $request->user();
         $currentLanguageId = Language::current()->id;
+        $languages = Language::active()->get(['id', 'code', 'name']);
         $typeFilter = $request->string('type')->value() ?: null;
         $statusFilter = $request->string('status')->value() ?: null;
 
@@ -60,11 +65,19 @@ class PostController extends Controller
             ->latest('updated_at')
             ->paginate(20)
             ->withQueryString()
-            ->through(fn (Post $post): array => $this->toSummary($post, $currentLanguageId));
+            ->through(fn (Post $post): array => $this->toSummary($post, $currentLanguageId, $languages));
 
         return Inertia::render('admin/posts/index', [
             'posts' => $posts,
             'contentTypes' => $this->contentTypeOptions(),
+            'languages' => $languages
+                ->map(fn (Language $language): array => [
+                    'id' => $language->id,
+                    'code' => $language->code,
+                    'name' => $language->name,
+                ])
+                ->values()
+                ->all(),
             'filters' => [
                 'type' => $typeFilter,
                 'status' => $statusFilter,
@@ -115,20 +128,24 @@ class PostController extends Controller
     /**
      * Simpan post baru + translation per bahasa yang diisi.
      */
-    public function store(PostRequest $request): RedirectResponse
-    {
+    public function store(
+        PostRequest $request,
+        SyncPostFeaturedMedia $syncFeaturedMedia,
+    ): RedirectResponse {
         $data = $request->validated();
         $userId = $request->user()?->id;
 
-        DB::transaction(function () use ($data, $userId): void {
+        DB::transaction(function () use ($data, $userId, $syncFeaturedMedia): void {
             $post = Post::create([
                 'type_id' => $data['type_id'],
                 'category_id' => $data['category_id'] ?? null,
                 'author_id' => $userId,
-                'featured_image' => $data['featured_image'] ?? null,
             ]);
 
             $post->tags()->sync($data['tags'] ?? []);
+            $syncFeaturedMedia($post, isset($data['featured_media_id'])
+                ? (int) $data['featured_media_id']
+                : null);
 
             $this->syncTranslations($post, $data['translations']);
         });
@@ -145,7 +162,7 @@ class PostController extends Controller
     {
         $this->authorize('update', $post);
 
-        $post->load(['translations', 'tags']);
+        $post->load(['translations', 'tags', 'media']);
 
         return Inertia::render('admin/posts/form', [
             'post' => $this->toFormArray($post),
@@ -159,18 +176,23 @@ class PostController extends Controller
     /**
      * Perbarui post: upsert translations, sync tags, ganti kategori/featured.
      */
-    public function update(PostRequest $request, Post $post): RedirectResponse
-    {
+    public function update(
+        PostRequest $request,
+        Post $post,
+        SyncPostFeaturedMedia $syncFeaturedMedia,
+    ): RedirectResponse {
         $data = $request->validated();
 
-        DB::transaction(function () use ($data, $post): void {
+        DB::transaction(function () use ($data, $post, $syncFeaturedMedia): void {
             $post->update([
                 'type_id' => $data['type_id'],
                 'category_id' => $data['category_id'] ?? null,
-                'featured_image' => $data['featured_image'] ?? null,
             ]);
 
             $post->tags()->sync($data['tags'] ?? []);
+            $syncFeaturedMedia($post, isset($data['featured_media_id'])
+                ? (int) $data['featured_media_id']
+                : null);
 
             $this->syncTranslations($post, $data['translations']);
         });
@@ -267,10 +289,14 @@ class PostController extends Controller
     }
 
     /**
-     * @return array{id: int, title: string, typeName: string, typeSlug: string, status: ?string, author: string, updated_at: string, editUrl: string}
+     * @param  Collection<int, Language>  $languages
+     * @return array{id: int, title: string, typeName: string, typeSlug: string, status: ?string, statuses: array<int, array{code: string, name: string, status: ?string}>, author: string, updated_at: string, editUrl: string}
      */
-    private function toSummary(Post $post, int $currentLanguageId): array
-    {
+    private function toSummary(
+        Post $post,
+        int $currentLanguageId,
+        Collection $languages,
+    ): array {
         $translation = $post->translations->firstWhere('language_id', $currentLanguageId)
             ?? $post->translations->first();
 
@@ -283,6 +309,18 @@ class PostController extends Controller
             'typeName' => $typeTranslation !== null ? $typeTranslation->name : $post->type->slug,
             'typeSlug' => $post->type->slug,
             'status' => $translation?->status?->value,
+            'statuses' => $languages
+                ->map(function (Language $language) use ($post): array {
+                    $translation = $post->translations->firstWhere('language_id', $language->id);
+
+                    return [
+                        'code' => $language->code,
+                        'name' => $language->name,
+                        'status' => $translation?->status?->value,
+                    ];
+                })
+                ->values()
+                ->all(),
             'author' => $post->author !== null ? $post->author->name : '-',
             'updated_at' => $post->updated_at?->toIso8601String() ?? '',
             'editUrl' => route('admin.posts.edit', $post->id),
@@ -311,7 +349,7 @@ class PostController extends Controller
     }
 
     /**
-     * @return array{id: int, type_id: int, category_id: ?int, featured_image: ?string, tag_ids: list<int>, translations: array<string, array{language_id: int, title: string, slug: string, body: ?string, status: string, published_at: ?string, meta_title: ?string, meta_description: ?string}>}
+     * @return array{id: int, type_id: int, category_id: ?int, featured_media: null|array{id: int, url: string, src: string, srcset: string, thumb_url: string, alt: string}, tag_ids: list<int>, translations: array<string, array{language_id: int, title: string, slug: string, body: ?string, status: string, published_at: ?string, meta_title: ?string, meta_description: ?string}>}
      */
     private function toFormArray(Post $post): array
     {
@@ -321,7 +359,7 @@ class PostController extends Controller
             'id' => $post->id,
             'type_id' => $post->type_id,
             'category_id' => $post->category_id,
-            'featured_image' => $post->featured_image,
+            'featured_media' => PostFeaturedImage::from($post->getFirstMedia('featured')),
             'tag_ids' => array_values(
                 $post->tags->pluck('id')->map(fn ($id): int => (int) $id)->all(),
             ),
@@ -394,17 +432,22 @@ class PostController extends Controller
     {
         $currentLanguageId = Language::current()->id;
 
-        return Category::query()
+        $categories = Category::query()
             ->with('translations')
             ->orderBy('sort_order')
-            ->get()
-            ->map(function (Category $category) use ($currentLanguageId): array {
+            ->orderBy('id')
+            ->get();
+
+        return CategoryTree::flatten($categories)
+            ->map(function (array $node) use ($currentLanguageId): array {
+                $category = $node['category'];
                 $translation = $category->translations->firstWhere('language_id', $currentLanguageId)
                     ?? $category->translations->first();
 
                 return [
                     'id' => $category->id,
-                    'name' => $translation !== null ? $translation->name : $category->slug,
+                    'name' => str_repeat('— ', $node['depth'])
+                        .($translation !== null ? $translation->name : $category->slug),
                 ];
             })
             ->values()

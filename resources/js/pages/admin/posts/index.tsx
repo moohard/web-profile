@@ -1,4 +1,5 @@
-import { Head, router } from '@inertiajs/react';
+import { Head, Link, router } from '@inertiajs/react';
+import { useState } from 'react';
 import DataTable from '@/components/admin/data-table';
 import type { DataTableColumn } from '@/components/admin/data-table';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +26,11 @@ type PostSummary = {
     typeName: string;
     typeSlug: string;
     status: string | null;
+    statuses: {
+        code: string;
+        name: string;
+        status: string | null;
+    }[];
     author: string;
     updated_at: string;
     editUrl: string;
@@ -33,7 +39,8 @@ type PostSummary = {
 type Paginated<T> = {
     data: T[];
     links: { url: string | null; label: string; active: boolean }[];
-    meta?: { current_page: number; last_page: number };
+    current_page: number;
+    last_page: number;
 };
 
 type Filters = {
@@ -50,6 +57,8 @@ export default function PostsIndex({
     contentTypes: ContentTypeOption[];
     filters: Filters;
 }) {
+    const [loading, setLoading] = useState(false);
+
     function applyFilters(next: Partial<Filters>) {
         const query: Record<string, string> = {};
         const type = next.type !== undefined ? next.type : filters.type;
@@ -66,6 +75,8 @@ export default function PostsIndex({
         router.get(postsIndex.url({ query }), undefined, {
             preserveState: true,
             preserveScroll: true,
+            onStart: () => setLoading(true),
+            onFinish: () => setLoading(false),
         });
     }
 
@@ -92,15 +103,23 @@ export default function PostsIndex({
         },
         {
             key: 'status',
-            header: 'Status',
+            header: 'Status bahasa',
             render: (row) => (
-                <Badge
-                    variant={
-                        row.status === 'Published' ? 'default' : 'secondary'
-                    }
-                >
-                    {row.status ?? '-'}
-                </Badge>
+                <div className="flex min-w-40 flex-wrap gap-1.5">
+                    {row.statuses.map((status) => (
+                        <Badge
+                            key={status.code}
+                            variant={
+                                status.status === 'Published'
+                                    ? 'default'
+                                    : 'secondary'
+                            }
+                            title={status.name}
+                        >
+                            {status.code.toUpperCase()}: {status.status ?? '—'}
+                        </Badge>
+                    ))}
+                </div>
             ),
         },
         {
@@ -123,7 +142,7 @@ export default function PostsIndex({
             render: (row) => (
                 <div className="flex justify-end gap-2">
                     <Button size="sm" variant="outline" asChild>
-                        <a href={postsRoutes.edit.url(row.id)}>Ubah</a>
+                        <Link href={postsRoutes.edit.url(row.id)}>Ubah</Link>
                     </Button>
                     <Button
                         type="button"
@@ -146,10 +165,12 @@ export default function PostsIndex({
                     <h1 className="text-2xl font-semibold">Posts</h1>
                     <div className="flex gap-2">
                         <Button variant="outline" asChild>
-                            <a href={postsRoutes.trash.url()}>Trash</a>
+                            <Link href={postsRoutes.trash.url()}>Trash</Link>
                         </Button>
                         <Button asChild>
-                            <a href={postsRoutes.create.url()}>Tambah post</a>
+                            <Link href={postsRoutes.create.url()}>
+                                Tambah post
+                            </Link>
                         </Button>
                     </div>
                 </div>
@@ -197,12 +218,63 @@ export default function PostsIndex({
                     </Select>
                 </div>
 
-                <DataTable
-                    columns={columns}
-                    data={posts.data}
-                    rowKey={(row) => row.id}
-                    emptyMessage="Belum ada post. Tambahkan post pertama."
-                />
+                <div
+                    aria-busy={loading}
+                    className={loading ? 'opacity-60' : undefined}
+                >
+                    {loading && (
+                        <p className="mb-3 text-sm text-muted-foreground">
+                            Memuat posts…
+                        </p>
+                    )}
+                    <DataTable
+                        columns={columns}
+                        data={posts.data}
+                        rowKey={(row) => row.id}
+                        emptyMessage="Belum ada post. Tambahkan post pertama."
+                    />
+                </div>
+
+                {posts.last_page > 1 && (
+                    <nav
+                        aria-label="Pagination posts"
+                        className="flex flex-wrap justify-center gap-2"
+                    >
+                        {posts.links.map((link, index) =>
+                            link.url ? (
+                                <Link
+                                    key={`${link.label}-${index}`}
+                                    href={link.url}
+                                    preserveState
+                                    preserveScroll
+                                    onStart={() => setLoading(true)}
+                                    onFinish={() => setLoading(false)}
+                                    aria-current={
+                                        link.active ? 'page' : undefined
+                                    }
+                                    className={`rounded-md border px-3 py-2 text-sm ${
+                                        link.active
+                                            ? 'bg-primary text-primary-foreground'
+                                            : 'hover:bg-muted'
+                                    }`}
+                                >
+                                    {link.label
+                                        .replace('&laquo;', '‹')
+                                        .replace('&raquo;', '›')}
+                                </Link>
+                            ) : (
+                                <span
+                                    key={`${link.label}-${index}`}
+                                    className="rounded-md border px-3 py-2 text-sm text-muted-foreground opacity-50"
+                                >
+                                    {link.label
+                                        .replace('&laquo;', '‹')
+                                        .replace('&raquo;', '›')}
+                                </span>
+                            ),
+                        )}
+                    </nav>
+                )}
             </div>
         </>
     );

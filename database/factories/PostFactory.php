@@ -17,7 +17,6 @@ class PostFactory extends Factory
         return [
             'type_id' => null, // wajib di-set saat make
             'category_id' => null,
-            'featured_image' => null,
         ];
     }
 

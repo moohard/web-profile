@@ -37,6 +37,26 @@ it('GET /admin/posts menampilkan daftar post untuk admin', function () {
         );
 });
 
+it('index mengirim status setiap bahasa aktif pada tiap post', function () {
+    $post = Post::factory()->withTranslation('id', $this->idLang, [
+        'title' => 'Multibahasa',
+        'status' => PostStatus::Published,
+    ])->create(['type_id' => $this->type->id]);
+    $post->forceFill(['updated_at' => now()->addDay()])->saveQuietly();
+
+    $this->actingAs(postAdmin())
+        ->get('/admin/posts')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('posts.data.0.id', $post->id)
+            ->where('posts.data.0.statuses.0.code', 'id')
+            ->where('posts.data.0.statuses.0.status', PostStatus::Published->value)
+            ->where('posts.data.0.statuses.1.code', 'en')
+            ->where('posts.data.0.statuses.1.status', null)
+            ->has('languages', 2)
+        );
+});
+
 it('Filter ?type menyaring post berdasarkan jenis konten', function () {
     $otherType = ContentType::factory()->withTranslation('id', $this->idLang, ['name' => 'Lain'])->create(['slug' => 'lain-jenis']);
     Post::factory()->withTranslation('id', $this->idLang, ['title' => 'Punya A'])->create(['type_id' => $this->type->id]);

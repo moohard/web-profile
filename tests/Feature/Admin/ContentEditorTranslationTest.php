@@ -12,6 +12,7 @@ use App\Models\PostTranslation;
 use App\Models\Tag;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 
 uses(RefreshDatabase::class);
 
@@ -31,12 +32,16 @@ it('POST /admin/posts membuat post beserta translation per bahasa yang diisi', f
     $category = Category::factory()->withTranslation('id', $this->idLang)->create();
     $tag = Tag::factory()->withTranslation('id', $this->idLang)->create();
     $admin = editorAdmin();
+    $sourcePost = Post::factory()->create(['type_id' => $this->type->id]);
+    $sourceMedia = $sourcePost
+        ->addMedia(UploadedFile::fake()->image('featured-create.jpg'))
+        ->toMediaCollection('library');
 
     $response = $this->actingAs($admin)->post('/admin/posts', [
         'type_id' => $this->type->id,
         'category_id' => $category->id,
         'tags' => [$tag->id],
-        'featured_image' => 'https://example.test/media/1.jpg',
+        'featured_media_id' => $sourceMedia->id,
         'translations' => [
             [
                 'language_id' => $this->idLang,
@@ -64,7 +69,7 @@ it('POST /admin/posts membuat post beserta translation per bahasa yang diisi', f
     expect($post)->not->toBeNull()
         ->and($post->author_id)->toBe($admin->id)
         ->and($post->category_id)->toBe($category->id)
-        ->and($post->featured_image)->toBe('https://example.test/media/1.jpg')
+        ->and($post->getFirstMedia('featured'))->not->toBeNull()
         ->and($post->tags()->pluck('tags.id')->all())->toBe([$tag->id])
         ->and($post->translations()->count())->toBe(2);
 
@@ -310,12 +315,16 @@ it('PUT /admin/posts/{post} meng-upsert translations, sync tags, dan update kate
     $category = Category::factory()->withTranslation('id', $this->idLang)->create();
     $tag = Tag::factory()->withTranslation('id', $this->idLang)->create();
     $existingTranslation = $post->translations()->first();
+    $sourcePost = Post::factory()->create(['type_id' => $this->type->id]);
+    $sourceMedia = $sourcePost
+        ->addMedia(UploadedFile::fake()->image('featured-update.jpg'))
+        ->toMediaCollection('library');
 
     $this->actingAs(editorAdmin())->put("/admin/posts/{$post->id}", [
         'type_id' => $this->type->id,
         'category_id' => $category->id,
         'tags' => [$tag->id],
-        'featured_image' => 'https://example.test/media/2.jpg',
+        'featured_media_id' => $sourceMedia->id,
         'translations' => [[
             'language_id' => $this->idLang,
             'title' => 'Baru',
@@ -329,7 +338,7 @@ it('PUT /admin/posts/{post} meng-upsert translations, sync tags, dan update kate
     $fresh = $post->fresh();
 
     expect($fresh->category_id)->toBe($category->id)
-        ->and($fresh->featured_image)->toBe('https://example.test/media/2.jpg')
+        ->and($fresh->getFirstMedia('featured'))->not->toBeNull()
         ->and($fresh->tags()->pluck('tags.id')->all())->toBe([$tag->id])
         ->and($fresh->translations()->count())->toBe(1)
         ->and($fresh->translations()->first()->title)->toBe('Baru')

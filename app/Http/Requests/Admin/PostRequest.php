@@ -8,6 +8,7 @@ use App\Enums\PostStatus;
 use App\Models\Language;
 use App\Models\Post;
 use App\Services\Html\Sanitizer;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
@@ -35,7 +36,13 @@ class PostRequest extends FormRequest
             'category_id' => ['nullable', 'integer', 'exists:categories,id'],
             'tags' => ['nullable', 'array'],
             'tags.*' => ['integer', 'exists:tags,id'],
-            'featured_image' => ['nullable', 'string', 'max:2048'],
+            'featured_media_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('media', 'id')->where(
+                    fn (Builder $query): Builder => $query->where('mime_type', 'like', 'image/%'),
+                ),
+            ],
             'translations' => ['required', 'array', 'min:1'],
             'translations.*.language_id' => ['required', 'integer', 'distinct', 'exists:languages,id'],
             'translations.*.title' => ['nullable', 'string', 'max:255'],
