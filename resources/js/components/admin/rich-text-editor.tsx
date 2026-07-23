@@ -1,256 +1,188 @@
 import Image from '@tiptap/extension-image';
+import Link from '@tiptap/extension-link';
+import type { Editor } from '@tiptap/react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { useEffect, useRef } from 'react';
+import {
+    Bold,
+    Italic,
+    Link as LinkIcon,
+    List,
+    ListOrdered,
+    Quote,
+} from 'lucide-react';
+import { useEffect } from 'react';
 import { MediaPicker } from '@/components/media/media-picker';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { Toggle } from '@/components/ui/toggle';
 
 type RichTextEditorProps = {
-    id: string;
+    id?: string;
     value: string;
     onChange: (html: string) => void;
-    ariaLabel: string;
 };
 
-function safeLink(rawUrl: string): string | null {
-    const value = rawUrl.trim();
+const HEADING_LEVELS = [1, 2, 3] as const;
 
-    if (value === '') {
-        return '';
-    }
-
-    if (value.toLowerCase().startsWith('mailto:')) {
-        return value;
-    }
-
-    try {
-        const url = new URL(value);
-
-        return ['http:', 'https:'].includes(url.protocol) ? url.href : null;
-    } catch {
-        return null;
-    }
-}
-
-export function RichTextEditor({
-    id,
-    value,
-    onChange,
-    ariaLabel,
-}: RichTextEditorProps) {
-    const onChangeRef = useRef(onChange);
-
-    useEffect(() => {
-        onChangeRef.current = onChange;
-    }, [onChange]);
-
+/**
+ * Editor rich-text (Tiptap) terkontrol — dipakai utk body Post & konten mode
+ * Template Page. `value`/`onChange` berupa string HTML (bukan JSON Tiptap)
+ * supaya selaras dengan field form lain; HTML disanitasi server via
+ * `Sanitizer::cleanRichText` (profil `default`) sebagai boundary akhir.
+ *
+ * SSR-safe: `immediatelyRender: false` mencegah akses `document` saat render
+ * di server (lihat resources/js/ssr.tsx) — editor baru terpasang setelah
+ * hidrasi di client (guard `if (!editor)` di bawah).
+ *
+ * Ekstensi dibatasi agar selaras dengan allowlist purify profil `default`:
+ * heading dibatasi h1-h3, `codeBlock` & `horizontalRule` dimatikan (kedua tag
+ * tak ada di allowlist rich-text) — apa yang diketik = yang tersimpan setelah
+ * sanitasi server.
+ */
+export function RichTextEditor({ id, value, onChange }: RichTextEditorProps) {
     const editor = useEditor({
+        immediatelyRender: false,
         extensions: [
             StarterKit.configure({
-                heading: {
-                    levels: [2, 3],
-                },
-                link: {
-                    openOnClick: false,
-                    autolink: true,
-                    defaultProtocol: 'https',
-                    protocols: ['http', 'https', 'mailto'],
-                },
+                link: false, // dikonfigurasi terpisah di bawah (butuh openOnClick: false)
+                codeBlock: false,
+                horizontalRule: false,
+                heading: { levels: [...HEADING_LEVELS] },
             }),
-            Image.configure({
-                allowBase64: false,
-            }),
+            Link.configure({ openOnClick: false }),
+            Image,
         ],
         content: value,
-        immediatelyRender: false,
+        onUpdate: ({ editor }) => onChange(editor.getHTML()),
         editorProps: {
             attributes: {
-                id,
-                'aria-label': ariaLabel,
-                class: 'min-h-64 px-3 py-2 text-sm outline-none [&_blockquote]:border-l-4 [&_blockquote]:pl-4 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:text-lg [&_h3]:font-semibold [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_ul]:list-disc [&_ul]:pl-6',
+                ...(id ? { id } : {}),
+                class: 'prose min-h-[240px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none',
             },
-        },
-        onUpdate: ({ editor: currentEditor }) => {
-            onChangeRef.current(currentEditor.getHTML());
         },
     });
 
+    // Sinkron nilai dari luar (mis. hasil "Terjemahkan/Koreksi dengan AI" atau
+    // ganti tab bahasa) tanpa memicu onUpdate berulang (emitUpdate: false) —
+    // hanya set ulang bila memang berbeda supaya ketikan pengguna tak terganggu.
     useEffect(() => {
-        if (editor !== null && editor.getHTML() !== value) {
+        if (editor && value !== editor.getHTML()) {
             editor.commands.setContent(value, { emitUpdate: false });
         }
-    }, [editor, value]);
+    }, [value, editor]);
 
-    if (editor === null) {
+    if (!editor) {
         return (
             <div
-                className="min-h-64 animate-pulse rounded-md border bg-muted/40 motion-reduce:animate-none"
-                aria-label={`Memuat ${ariaLabel}`}
+                id={id}
+                className="min-h-[240px] w-full animate-pulse rounded-md border border-input bg-muted"
             />
         );
     }
 
-    function setLink() {
-        if (editor === null) {
-            return;
-        }
-
-        const currentHref = editor.getAttributes('link').href as
-            string | undefined;
-        const rawUrl = window.prompt(
-            'Masukkan URL http(s) atau mailto:',
-            currentHref ?? '',
-        );
-
-        if (rawUrl === null) {
-            return;
-        }
-
-        const href = safeLink(rawUrl);
-
-        if (href === '') {
-            editor.chain().focus().extendMarkRange('link').unsetLink().run();
-
-            return;
-        }
-
-        if (href === null) {
-            window.alert('URL tidak valid. Gunakan http, https, atau mailto.');
-
-            return;
-        }
-
-        editor.chain().focus().extendMarkRange('link').setLink({ href }).run();
-    }
-
-    const toolbarButton = (isActive: boolean) =>
-        cn(isActive && 'bg-accent text-accent-foreground');
-
     return (
-        <div className="overflow-hidden rounded-md border border-input bg-background">
-            <div
-                className="flex flex-wrap items-center gap-1 border-b bg-muted/30 p-2"
-                role="toolbar"
-                aria-label={`Format ${ariaLabel}`}
-            >
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className={toolbarButton(editor.isActive('paragraph'))}
-                    onClick={() => editor.chain().focus().setParagraph().run()}
-                    aria-label="Paragraf"
-                    aria-pressed={editor.isActive('paragraph')}
-                >
-                    P
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className={toolbarButton(
-                        editor.isActive('heading', { level: 2 }),
-                    )}
-                    onClick={() =>
-                        editor.chain().focus().toggleHeading({ level: 2 }).run()
-                    }
-                    aria-label="Heading 2"
-                    aria-pressed={editor.isActive('heading', { level: 2 })}
-                >
-                    H2
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className={toolbarButton(
-                        editor.isActive('heading', { level: 3 }),
-                    )}
-                    onClick={() =>
-                        editor.chain().focus().toggleHeading({ level: 3 }).run()
-                    }
-                    aria-label="Heading 3"
-                    aria-pressed={editor.isActive('heading', { level: 3 })}
-                >
-                    H3
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className={toolbarButton(editor.isActive('bold'))}
-                    onClick={() => editor.chain().focus().toggleBold().run()}
-                    aria-label="Tebal"
-                    aria-pressed={editor.isActive('bold')}
-                >
-                    B
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className={toolbarButton(editor.isActive('italic'))}
-                    onClick={() => editor.chain().focus().toggleItalic().run()}
-                    aria-label="Miring"
-                    aria-pressed={editor.isActive('italic')}
-                >
-                    I
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className={toolbarButton(editor.isActive('bulletList'))}
-                    onClick={() =>
-                        editor.chain().focus().toggleBulletList().run()
-                    }
-                    aria-pressed={editor.isActive('bulletList')}
-                >
-                    Daftar
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className={toolbarButton(editor.isActive('orderedList'))}
-                    onClick={() =>
-                        editor.chain().focus().toggleOrderedList().run()
-                    }
-                    aria-pressed={editor.isActive('orderedList')}
-                >
-                    Bernomor
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className={toolbarButton(editor.isActive('link'))}
-                    onClick={setLink}
-                    aria-pressed={editor.isActive('link')}
-                >
-                    Tautan
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className={toolbarButton(editor.isActive('blockquote'))}
-                    onClick={() =>
-                        editor.chain().focus().toggleBlockquote().run()
-                    }
-                    aria-pressed={editor.isActive('blockquote')}
-                >
-                    Kutipan
-                </Button>
-                <MediaPicker
-                    onPick={(_mediaId, url) => {
-                        editor.chain().focus().setImage({ src: url }).run();
-                    }}
-                />
-            </div>
-
+        <div className="space-y-2">
+            <RichTextToolbar editor={editor} />
             <EditorContent editor={editor} />
+        </div>
+    );
+}
+
+function RichTextToolbar({ editor }: { editor: Editor }) {
+    return (
+        <div className="flex flex-wrap items-center gap-1 rounded-md border border-input bg-background p-1">
+            {HEADING_LEVELS.map((level) => (
+                <Toggle
+                    key={level}
+                    size="sm"
+                    pressed={editor.isActive('heading', { level })}
+                    onPressedChange={() =>
+                        editor.chain().focus().toggleHeading({ level }).run()
+                    }
+                    aria-label={`Heading ${level}`}
+                >
+                    {`H${level}`}
+                </Toggle>
+            ))}
+            <Toggle
+                size="sm"
+                pressed={editor.isActive('bold')}
+                onPressedChange={() =>
+                    editor.chain().focus().toggleBold().run()
+                }
+                aria-label="Tebal"
+            >
+                <Bold />
+            </Toggle>
+            <Toggle
+                size="sm"
+                pressed={editor.isActive('italic')}
+                onPressedChange={() =>
+                    editor.chain().focus().toggleItalic().run()
+                }
+                aria-label="Miring"
+            >
+                <Italic />
+            </Toggle>
+            <Toggle
+                size="sm"
+                pressed={editor.isActive('bulletList')}
+                onPressedChange={() =>
+                    editor.chain().focus().toggleBulletList().run()
+                }
+                aria-label="Daftar bullet"
+            >
+                <List />
+            </Toggle>
+            <Toggle
+                size="sm"
+                pressed={editor.isActive('orderedList')}
+                onPressedChange={() =>
+                    editor.chain().focus().toggleOrderedList().run()
+                }
+                aria-label="Daftar bernomor"
+            >
+                <ListOrdered />
+            </Toggle>
+            <Toggle
+                size="sm"
+                pressed={editor.isActive('blockquote')}
+                onPressedChange={() =>
+                    editor.chain().focus().toggleBlockquote().run()
+                }
+                aria-label="Kutipan"
+            >
+                <Quote />
+            </Toggle>
+            <Toggle
+                size="sm"
+                pressed={editor.isActive('link')}
+                onPressedChange={() => {
+                    if (editor.isActive('link')) {
+                        editor.chain().focus().unsetLink().run();
+
+                        return;
+                    }
+
+                    const url = window.prompt('URL tautan');
+
+                    if (url) {
+                        editor
+                            .chain()
+                            .focus()
+                            .extendMarkRange('link')
+                            .setLink({ href: url })
+                            .run();
+                    }
+                }}
+                aria-label="Tautan"
+            >
+                <LinkIcon />
+            </Toggle>
+            <MediaPicker
+                onPick={(_mediaId, url) =>
+                    editor.chain().focus().setImage({ src: url }).run()
+                }
+            />
         </div>
     );
 }

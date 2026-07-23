@@ -27,6 +27,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class PostController extends Controller
 {
@@ -59,7 +60,7 @@ class PostController extends Controller
                 ),
             )
             ->when(
-                $user !== null && $user->hasRole(UserRole::Author->value) && ! $user->hasAnyRole([UserRole::Admin->value, UserRole::Editor->value]),
+                $this->isAuthorScoped($user),
                 fn ($query) => $query->where('author_id', $user->id),
             )
             ->latest('updated_at')
@@ -142,11 +143,10 @@ class PostController extends Controller
                 'author_id' => $userId,
             ]);
 
-            $post->tags()->sync($data['tags'] ?? []);
+            $post->tags()->sync($this->resolveTagIds($data['tags'] ?? [], $data['new_tags'] ?? []));
             $syncFeaturedMedia($post, isset($data['featured_media_id'])
                 ? (int) $data['featured_media_id']
                 : null);
-
             $this->syncTranslations($post, $data['translations']);
         });
 
@@ -189,11 +189,10 @@ class PostController extends Controller
                 'category_id' => $data['category_id'] ?? null,
             ]);
 
-            $post->tags()->sync($data['tags'] ?? []);
+            $post->tags()->sync($this->resolveTagIds($data['tags'] ?? [], $data['new_tags'] ?? []));
             $syncFeaturedMedia($post, isset($data['featured_media_id'])
                 ? (int) $data['featured_media_id']
                 : null);
-
             $this->syncTranslations($post, $data['translations']);
         });
 
@@ -203,7 +202,8 @@ class PostController extends Controller
     }
 
     /**
-     * Hapus post — otorisasi Admin/Editor bebas, Author hanya miliknya.
+     * Hapus post — otorisasi Admin/Editor bebas, Author hanya miliknya. Soft delete
+     * (trait SoftDeletes): translations & media tetap ada, muncul di trash.
      */
     public function destroy(Post $post): RedirectResponse
     {
@@ -240,6 +240,30 @@ class PostController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Post dihapus permanen.']);
 
         return redirect()->route('admin.posts.trash');
+    }
+
+    /**
+     * Selaraskan gambar unggulan post ke koleksi media `featured` (singleFile).
+     * Media pilihan dari MediaPicker di-copy (bukan dipindah) ke koleksi post ini
+     * supaya media asal — bila kepunyaan model lain — tidak ikut berpindah/terhapus.
+     * No-op bila id yang dipilih sama dengan media featured yang sudah terpasang
+     * (mencegah duplikasi & regenerasi conversion setiap kali post disimpan ulang).
+     */
+    private function syncFeaturedMedia(Post $post, ?int $mediaId): void
+    {
+        $currentMediaId = $post->getFirstMedia('featured')?->id;
+
+        if ($mediaId === $currentMediaId) {
+            return;
+        }
+
+        if ($mediaId === null) {
+            $post->getFirstMedia('featured')?->delete();
+
+            return;
+        }
+
+        Media::findOrFail($mediaId)->copy($post, 'featured');
     }
 
     /**
@@ -311,12 +335,12 @@ class PostController extends Controller
             'status' => $translation?->status?->value,
             'statuses' => $languages
                 ->map(function (Language $language) use ($post): array {
-                    $translation = $post->translations->firstWhere('language_id', $language->id);
+                    $tr = $post->translations->firstWhere('language_id', $language->id);
 
                     return [
                         'code' => $language->code,
                         'name' => $language->name,
-                        'status' => $translation?->status?->value,
+                        'status' => $tr?->status?->value,
                     ];
                 })
                 ->values()
@@ -354,6 +378,7 @@ class PostController extends Controller
     private function toFormArray(Post $post): array
     {
         $languagesByCode = Language::active()->get(['id', 'code'])->keyBy('id');
+        $featuredMedia = $post->getFirstMedia('featured');
 
         return [
             'id' => $post->id,
@@ -455,6 +480,16 @@ class PostController extends Controller
     }
 
     /**
+     * Apakah query post harus dibatasi ke milik user (Author tanpa role Admin/Editor).
+     */
+    private function isAuthorScoped(?User $user): bool
+    {
+        return $user !== null
+            && $user->hasRole(UserRole::Author->value)
+            && ! $user->hasAnyRole([UserRole::Admin->value, UserRole::Editor->value]);
+    }
+
+    /**
      * @return array<int, array{id: int, name: string}>
      */
     private function tagOptions(): array
@@ -475,5 +510,75 @@ class PostController extends Controller
             })
             ->values()
             ->all();
+    }
+
+    /**
+     * Gabungkan id tag yang sudah dipilih (`tags[]`) dengan tag baru yang
+     * diketik di editor (`new_tags[]`, create-on-type). Nama baru dicocokkan
+     * dahulu (case-insensitive, firstOrCreate) supaya tag yang sudah ada
+     * tidak diduplikasi; nama yang benar-benar baru membuat Tag baru.
+     *
+     * @param  list<int|string>  $existingIds
+     * @param  list<string>  $newTagNames
+     * @return list<int>
+     */
+    private function resolveTagIds(array $existingIds, array $newTagNames): array
+    {
+        $ids = array_map(fn (int|string $id): int => (int) $id, $existingIds);
+
+        $seenNames = [];
+
+        foreach ($newTagNames as $name) {
+            $name = trim($name);
+            $normalized = mb_strtolower($name);
+
+            if ($name === '' || in_array($normalized, $seenNames, true)) {
+                continue;
+            }
+
+            $seenNames[] = $normalized;
+            $ids[] = $this->findOrCreateTagIdByName($name);
+        }
+
+        return array_values(array_unique($ids));
+    }
+
+    /**
+     * Cari Tag yang salah satu translation-nya cocok $name (case-insensitive,
+     * bahasa apa pun) — bila tidak ada, buat Tag baru + TagTranslation dengan
+     * nama yang sama di SEMUA bahasa aktif (default aman karena create-on-type
+     * hanya mengetik satu nama, bukan per-bahasa; mengikuti pola
+     * TagController::syncTranslations, bukan skema baru).
+     *
+     * Keputusan otorisasi (DISENGAJA): pembuatan Tag di sini TIDAK lewat
+     * TagPolicy::create (butuh permission `content-types.create`, yang hanya
+     * dimiliki Admin — Editor & Author pun tidak punya). Otorisasi method ini
+     * ikut PostPolicy::create/update (via PostRequest::authorize()) yang sudah
+     * dijalankan sebelum controller method store()/update() dipanggil — supaya
+     * siapa pun yang berhak menulis post (termasuk Author, atas post miliknya)
+     * bisa membuat tag baru inline saat mengetik, tanpa perlu capability
+     * taksonomi terpisah. Batas abuse dijaga validasi `new_tags` `max:20`
+     * (PostRequest) — bukan oleh TagPolicy.
+     */
+    private function findOrCreateTagIdByName(string $name): int
+    {
+        $existing = Tag::query()
+            ->whereHas('translations', fn ($q) => $q->whereRaw('LOWER(name) = ?', [mb_strtolower($name)]))
+            ->first();
+
+        if ($existing !== null) {
+            return $existing->id;
+        }
+
+        $tag = Tag::create(['slug' => ContentSlug::unique(Tag::class, $name)]);
+
+        foreach (Language::active()->get(['id']) as $language) {
+            $tag->translations()->create([
+                'language_id' => $language->id,
+                'name' => $name,
+            ]);
+        }
+
+        return $tag->id;
     }
 }

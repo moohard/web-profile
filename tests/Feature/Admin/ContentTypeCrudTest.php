@@ -150,6 +150,25 @@ it('DELETE ditolak bila jenis konten masih memiliki post', function () {
     expect(ContentType::find($contentType->id))->not->toBeNull();
 });
 
+it('DELETE ditolak bila jenis konten masih memiliki post yang sudah di-trash (soft-deleted)', function () {
+    // Guard sebelumnya buta trashed: posts()->exists() tak melihat post yang
+    // sudah di-soft-delete (SoftDeletes menambah global scope exclude), jadi
+    // ContentType lolos terhapus → cascadeOnDelete pada posts.type_id
+    // HARD-DELETE post trashed itu (bypass forceDelete/policy). Post trashed
+    // tetap harus MENGUNCI penghapusan sampai di-forceDelete.
+    $idLang = Language::idFor('id');
+    $contentType = ContentType::factory()->withTranslation('id', $idLang)->create();
+    $post = Post::factory()->create(['type_id' => $contentType->id]);
+    $post->delete();
+
+    $this->actingAs(contentTypeAdmin())
+        ->delete("/admin/content-types/{$contentType->id}")
+        ->assertRedirect();
+
+    expect(ContentType::find($contentType->id))->not->toBeNull();
+    expect(Post::onlyTrashed()->find($post->id))->not->toBeNull();
+});
+
 it('DELETE menghapus jenis konten tanpa post terkait', function () {
     $idLang = Language::idFor('id');
     $contentType = ContentType::factory()->withTranslation('id', $idLang)->create();

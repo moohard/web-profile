@@ -27,6 +27,8 @@ class HomeController extends Controller
         $latest = PostTranslation::query()
             ->with('post.type')
             ->where('language_id', $langId)
+            // Post yang sudah di-trash (SoftDeletes) harus dikecualikan; tanpa whereHas('post')
+            // relasi post bisa null (global scope) dan $t->post->type di bawah akan error.
             ->whereHas('post')
             ->published()
             ->orderByDesc('published_at')

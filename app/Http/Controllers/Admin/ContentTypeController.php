@@ -135,7 +135,10 @@ class ContentTypeController extends Controller
     {
         $this->authorize('delete', $contentType);
 
-        if ($contentType->posts()->exists()) {
+        // withTrashed(): post yang sudah di-soft-delete pun MENGUNCI penghapusan
+        // (sampai di-forceDelete) — posts.type_id cascadeOnDelete, jadi lolos di
+        // sini berarti post trashed ikut HARD-DELETE bypass forceDelete/policy.
+        if ($contentType->posts()->withTrashed()->exists()) {
             Inertia::flash('toast', ['type' => 'error', 'message' => 'Jenis konten tidak bisa dihapus karena masih memiliki post.']);
 
             return back();

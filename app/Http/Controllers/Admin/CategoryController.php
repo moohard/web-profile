@@ -105,7 +105,9 @@ class CategoryController extends Controller
     {
         $this->authorize('delete', $category);
 
-        if ($category->posts()->exists()) {
+        // withTrashed(): post yang sudah di-soft-delete pun MENGUNCI penghapusan
+        // (sampai di-forceDelete) — demi menjaga garansi restore post tersebut.
+        if ($category->posts()->withTrashed()->exists()) {
             Inertia::flash('toast', ['type' => 'error', 'message' => 'Kategori tidak bisa dihapus karena masih memiliki post.']);
 
             return back();

@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -23,6 +24,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
  * @property int $type_id
  * @property ?int $category_id
  * @property ?int $author_id
+ * @property ?Carbon $deleted_at
  */
 #[UsePolicy(PostPolicy::class)]
 class Post extends Model implements HasMedia
