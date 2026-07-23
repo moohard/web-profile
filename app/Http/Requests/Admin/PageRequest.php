@@ -8,6 +8,7 @@ use App\Enums\PageMode;
 use App\Enums\PostStatus;
 use App\Models\Language;
 use App\Models\Page;
+use App\Support\Pages\PageTemplateRegistry;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
@@ -41,7 +42,7 @@ class PageRequest extends FormRequest
     {
         return [
             'mode' => ['required', Rule::in([PageMode::Code->value, PageMode::Template->value])],
-            'template_key' => ['required', 'string', 'max:100'],
+            'template_key' => ['required', 'string', Rule::in(PageTemplateRegistry::keys())],
             'hero_enabled' => ['required', 'boolean'],
             'hero_image' => ['nullable', 'string', 'max:2048'],
             'sidebar_enabled' => ['required', 'boolean'],
@@ -55,8 +56,8 @@ class PageRequest extends FormRequest
             'translations.*.hero_subheading' => ['nullable', 'string', 'max:255'],
             'translations.*.hero_cta_text' => ['nullable', 'string', 'max:255'],
             'translations.*.hero_cta_link' => ['nullable', 'string', 'max:2048'],
-            'translations.*.meta_title' => ['nullable', 'string', 'max:255'],
-            'translations.*.meta_description' => ['nullable', 'string', 'max:255'],
+            'translations.*.meta_title' => ['nullable', 'string', 'max:60'],
+            'translations.*.meta_description' => ['nullable', 'string', 'max:160'],
         ];
     }
 
@@ -77,6 +78,19 @@ class PageRequest extends FormRequest
 
             if (! $hasDefault) {
                 $validator->errors()->add('translations', 'Bahasa default wajib diisi (judul).');
+            }
+
+            foreach ($translations as $index => $translation) {
+                if (($translation['status'] ?? null) !== PostStatus::Published->value) {
+                    continue;
+                }
+
+                if (! filled($translation['content'] ?? null)) {
+                    $validator->errors()->add(
+                        "translations.{$index}.content",
+                        'Konten wajib diisi untuk translation Published.',
+                    );
+                }
             }
         });
     }

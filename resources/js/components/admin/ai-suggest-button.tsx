@@ -16,7 +16,7 @@ type AiSuggestButtonProps = {
 };
 
 /** Baca nilai cookie XSRF-TOKEN (di-decode) untuk header `X-XSRF-TOKEN`. */
-function readXsrfToken(): string {
+export function readXsrfToken(): string {
     const match = document.cookie
         .split('; ')
         .find((row) => row.startsWith('XSRF-TOKEN='));

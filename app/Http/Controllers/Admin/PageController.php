@@ -13,6 +13,7 @@ use App\Models\PageTranslation;
 use App\Models\User;
 use App\Services\Html\Sanitizer;
 use App\Support\ContentSlug;
+use App\Support\Pages\PageTemplateRegistry;
 use App\Support\PublicLayoutProps;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,17 +24,6 @@ use Inertia\Response;
 
 class PageController extends Controller
 {
-    /**
-     * Daftar template hardcode — dipakai mode Template (§8.4).
-     *
-     * @var list<array{key: string, label: string}>
-     */
-    private const TEMPLATE_OPTIONS = [
-        ['key' => 'default', 'label' => 'Default'],
-        ['key' => 'full-width', 'label' => 'Full width'],
-        ['key' => 'landing', 'label' => 'Landing'],
-    ];
-
     public function __construct(private readonly Sanitizer $sanitizer) {}
 
     /**
@@ -97,7 +87,7 @@ class PageController extends Controller
             'page' => null,
             'languages' => $this->languageOptions(),
             'canUseCodeMode' => Gate::allows('use-page-code-mode'),
-            'templateOptions' => self::TEMPLATE_OPTIONS,
+            'templateOptions' => PageTemplateRegistry::options(),
         ]);
     }
 
@@ -138,7 +128,7 @@ class PageController extends Controller
             'page' => $this->toFormArray($page),
             'languages' => $this->languageOptions(),
             'canUseCodeMode' => Gate::allows('use-page-code-mode'),
-            'templateOptions' => self::TEMPLATE_OPTIONS,
+            'templateOptions' => PageTemplateRegistry::options(),
         ]);
     }
 

@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\LanguageController;
 use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\PageController;
+use App\Http\Controllers\Admin\PagePreviewController;
 use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Admin\TagController;
 use App\Http\Controllers\Admin\WritingStyleController;
@@ -34,6 +35,7 @@ Route::prefix('pages')->name('pages.')->group(function (): void {
     Route::get('/', [PageController::class, 'index'])->name('index');
     Route::get('/trash', [PageController::class, 'trash'])->name('trash');
     Route::get('/create', [PageController::class, 'create'])->name('create');
+    Route::post('/preview', PagePreviewController::class)->name('preview');
     Route::post('/', [PageController::class, 'store'])->name('store');
     Route::get('/{page}/edit', [PageController::class, 'edit'])->name('edit');
     Route::put('/{page}', [PageController::class, 'update'])->name('update');
