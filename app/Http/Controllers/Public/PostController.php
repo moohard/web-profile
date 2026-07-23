@@ -94,7 +94,7 @@ class PostController extends Controller
         ];
 
         // Defense-in-depth: sanitasi HTML body sebelum dikirim ke frontend (dirender via dangerouslySetInnerHTML)
-        $translation->body = app(Sanitizer::class)->clean($translation->body ?? '');
+        $translation->body = app(Sanitizer::class)->cleanRichText($translation->body ?? '');
 
         return Inertia::render('public/post-show', array_merge(
             PublicLayoutProps::base($localeLinks),

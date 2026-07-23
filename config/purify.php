@@ -40,6 +40,36 @@ return [
 
     'configs' => [
 
+        'rich_text' => [
+            'Core.Encoding' => 'utf-8',
+            'HTML.Doctype' => 'HTML 4.01 Transitional',
+            'HTML.Allowed' => implode(',', [
+                'h1',
+                'h2',
+                'h3',
+                'p',
+                'ul',
+                'ol',
+                'li',
+                'a[href|title|target|rel]',
+                'blockquote',
+                'img[src|alt|title|width|height]',
+                'strong',
+                'em',
+                'br',
+            ]),
+            'HTML.ForbiddenElements' => 'script,style,iframe,object,embed,form,input,button',
+            'AutoFormat.AutoParagraph' => false,
+            'AutoFormat.RemoveEmpty' => false,
+            'HTML.TargetBlank' => true,
+            'URI.AllowedSchemes' => [
+                'http' => true,
+                'https' => true,
+                'mailto' => true,
+            ],
+            'Attr.AllowedFrameTargets' => ['_blank', '_self'],
+        ],
+
         'default' => [
             'Core.Encoding' => 'utf-8',
             'HTML.Doctype' => 'HTML 4.01 Transitional',

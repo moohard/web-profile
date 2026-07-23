@@ -9,12 +9,35 @@ use Stevebauman\Purify\Facades\Purify;
 class Sanitizer
 {
     /**
-     * Bersihkan HTML admin untuk mode code page.
-     * Buang script, event handler on*, javascript/data URLs; pertahankan class design system.
+     * Alias kompatibilitas untuk HTML mode Code Page.
      */
     public function clean(string $html): string
     {
-        $cleaned = Purify::config('cms_page')->clean($html);
+        return $this->cleanCmsPage($html);
+    }
+
+    /**
+     * Bersihkan HTML dari editor rich text dengan allowlist terbatas.
+     */
+    public function cleanRichText(string $html): string
+    {
+        return $this->cleanWithProfile($html, 'rich_text');
+    }
+
+    /**
+     * Bersihkan HTML admin untuk mode Code Page.
+     *
+     * Buang script, event handler on*, dan URI berbahaya, tetapi pertahankan
+     * class design system yang diizinkan profile CMS.
+     */
+    public function cleanCmsPage(string $html): string
+    {
+        return $this->cleanWithProfile($html, 'cms_page');
+    }
+
+    private function cleanWithProfile(string $html, string $profile): string
+    {
+        $cleaned = Purify::config($profile)->clean($html);
 
         return is_string($cleaned) ? $cleaned : '';
     }

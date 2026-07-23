@@ -84,7 +84,7 @@ it('body post disanitasi sebelum disimpan', function () {
         'translations' => [[
             'language_id' => $this->idLang,
             'title' => 'Aman',
-            'body' => '<script>alert(1)</script><p>ok</p>',
+            'body' => '<script>alert(1)</script><section class="layout"><h2>Judul</h2><p style="color:red">ok</p></section>',
             'status' => 'Draft',
         ]],
     ])->assertRedirect();
@@ -92,7 +92,10 @@ it('body post disanitasi sebelum disimpan', function () {
     $translation = PostTranslation::query()->latest('id')->first();
 
     expect($translation->body)->not->toContain('<script>')
-        ->and($translation->body)->toBe('<p>ok</p>');
+        ->not->toContain('<section')
+        ->not->toContain('class=')
+        ->not->toContain('style=')
+        ->and($translation->body)->toBe('<h2>Judul</h2><p>ok</p>');
 });
 
 it('slug otomatis dibuat dari judul dan tetap unik saat bentrok dalam bahasa yang sama', function () {
@@ -184,18 +187,38 @@ it('validasi menolak language_id translation yang duplikat', function () {
     expect(PostTranslation::query()->where('title', 'Judul Valid')->exists())->toBeFalse();
 });
 
-it('translation Published menolak body yang kosong setelah sanitasi', function () {
+it('translation Published menolak body yang kosong setelah sanitasi', function (string $body) {
     $this->actingAs(editorAdmin())->post('/admin/posts', [
         'type_id' => $this->type->id,
         'translations' => [[
             'language_id' => $this->idLang,
             'title' => 'Konten Tidak Aman',
-            'body' => '<script>alert(1)</script>',
+            'body' => $body,
             'status' => 'Published',
         ]],
     ])->assertSessionHasErrors('translations.0.body');
 
     expect(PostTranslation::query()->where('title', 'Konten Tidak Aman')->exists())->toBeFalse();
+})->with([
+    'script saja' => '<script>alert(1)</script>',
+    'paragraf kosong Tiptap' => '<p></p>',
+    'paragraf break Tiptap' => '<p><br></p>',
+    'non-breaking space' => '<p>&nbsp;</p>',
+]);
+
+it('translation Published menerima body berupa gambar rich text yang aman', function () {
+    $this->actingAs(editorAdmin())->post('/admin/posts', [
+        'type_id' => $this->type->id,
+        'translations' => [[
+            'language_id' => $this->idLang,
+            'title' => 'Galeri Tunggal',
+            'body' => '<p><img src="https://example.test/image.jpg" alt="Galeri"></p>',
+            'status' => 'Published',
+        ]],
+    ])->assertRedirect(route('admin.posts.index'));
+
+    expect(PostTranslation::query()->where('title', 'Galeri Tunggal')->value('body'))
+        ->toContain('<img src="https://example.test/image.jpg" alt="Galeri">');
 });
 
 it('translation Draft kosong selain bahasa default diabaikan', function () {

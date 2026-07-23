@@ -3,6 +3,7 @@ import type { FormEvent } from 'react';
 import { AiSuggestButton } from '@/components/admin/ai-suggest-button';
 import LanguageTabs from '@/components/admin/language-tabs';
 import type { LanguageOption } from '@/components/admin/language-tabs';
+import { RichTextEditor } from '@/components/admin/rich-text-editor';
 import InputError from '@/components/input-error';
 import { MediaPicker } from '@/components/media/media-picker';
 import { Button } from '@/components/ui/button';
@@ -368,21 +369,18 @@ export default function PostForm({
                                                 >
                                                     Konten ({lang.code})
                                                 </Label>
-                                                <textarea
+                                                <RichTextEditor
                                                     id={`post-body-${lang.id}`}
                                                     value={t.body}
-                                                    onChange={(e) =>
+                                                    onChange={(body) =>
                                                         updateTranslation(
                                                             lang.id,
                                                             {
-                                                                body: e.target
-                                                                    .value,
+                                                                body,
                                                             },
                                                         )
                                                     }
-                                                    rows={12}
-                                                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                                                    placeholder={`Isi konten dalam ${lang.name}`}
+                                                    ariaLabel={`Konten dalam ${lang.name}`}
                                                 />
                                                 <InputError
                                                     message={fieldError('body')}

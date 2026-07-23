@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\MediaController;
 use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\PostController;
 use App\Http\Controllers\Admin\TagController;
+use App\Http\Controllers\Admin\WritingStyleController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -80,9 +81,20 @@ Route::post('/tags', [TagController::class, 'store'])->name('tags.store');
 Route::put('/tags/{tag}', [TagController::class, 'update'])->name('tags.update');
 Route::delete('/tags/{tag}', [TagController::class, 'destroy'])->name('tags.destroy');
 Route::get('/galleries', fn () => Inertia::render('admin/placeholder', ['section' => 'Galeri']))->name('galleries.index')->middleware('permission:galleries.viewAny');
-Route::get('/writing-styles', fn () => Inertia::render('admin/placeholder', ['section' => 'Gaya Bahasa']))->name('writing-styles.index')->middleware('permission:admin.access-system');
+Route::prefix('/writing-styles')
+    ->name('writing-styles.')
+    ->middleware('permission:admin.access-system')
+    ->group(function (): void {
+        Route::get('/', [WritingStyleController::class, 'index'])->name('index');
+        Route::post('/', [WritingStyleController::class, 'store'])->name('store');
+        Route::put('/{writingStyle}', [WritingStyleController::class, 'update'])->name('update');
+        Route::delete('/{writingStyle}', [WritingStyleController::class, 'destroy'])->name('destroy');
+    });
 Route::get('/rating-criteria', fn () => Inertia::render('admin/placeholder', ['section' => 'Kriteria Penilaian']))->name('rating-criteria.index')->middleware('permission:admin.access-system');
 Route::get('/media', [MediaController::class, 'index'])->name('media.index');
+Route::get('/media/picker', [MediaController::class, 'picker'])
+    ->middleware('permission:media.viewAny')
+    ->name('media.picker');
 Route::post('/media', [MediaController::class, 'store'])
     ->middleware('permission:media.create')
     ->name('media.store');

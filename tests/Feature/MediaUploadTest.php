@@ -26,6 +26,33 @@ it('GET /admin/media menampilkan halaman media untuk admin', function () {
         );
 });
 
+it('GET /admin/media/picker mengembalikan data JSON tanpa response Inertia', function () {
+    $admin = User::where('email', env('ADMIN_EMAIL', 'admin@papenajam.test'))->first();
+    $type = ContentType::where('slug', 'berita')->first();
+    $post = Post::factory()->create(['type_id' => $type->id]);
+    $media = $post->addMedia(UploadedFile::fake()->image('picker.jpg'))
+        ->withCustomProperties(['alt' => 'Gambar pilihan'])
+        ->toMediaCollection('featured_image');
+
+    $this->actingAs($admin)
+        ->getJson('/admin/media/picker')
+        ->assertOk()
+        ->assertJsonPath('data.0.id', $media->id)
+        ->assertJsonPath('data.0.alt', 'Gambar pilihan')
+        ->assertJsonStructure([
+            'data' => [['id', 'file_name', 'url', 'thumb_url', 'alt']],
+        ])
+        ->assertHeaderMissing('X-Inertia');
+});
+
+it('GET /admin/media/picker memerlukan permission media.viewAny', function () {
+    $user = User::factory()->create()->givePermissionTo('access-admin');
+
+    $this->actingAs($user)
+        ->getJson('/admin/media/picker')
+        ->assertForbidden();
+});
+
 it('POST /admin/media upload sukses untuk Post', function () {
     $admin = User::where('email', env('ADMIN_EMAIL', 'admin@papenajam.test'))->first();
     $type = ContentType::where('slug', 'berita')->first();

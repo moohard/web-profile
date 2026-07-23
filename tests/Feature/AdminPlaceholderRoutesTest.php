@@ -25,7 +25,6 @@ it('semua route placeholder mengembalikan 200 untuk Admin', function () {
         '/admin/categories',
         '/admin/tags',
         '/admin/galleries',
-        '/admin/writing-styles',
         '/admin/rating-criteria',
         '/admin/media',
     ];

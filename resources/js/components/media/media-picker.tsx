@@ -1,4 +1,4 @@
-import { router } from '@inertiajs/react';
+import { useHttp } from '@inertiajs/react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,7 +8,7 @@ import {
     DialogTitle,
     DialogTrigger,
 } from '@/components/ui/dialog';
-import { index as mediaIndex } from '@/routes/admin/media';
+import { picker as mediaPicker } from '@/routes/admin/media';
 
 type MediaItem = {
     id: number;
@@ -18,9 +18,13 @@ type MediaItem = {
     alt?: string;
 };
 
+type MediaPickerResponse = {
+    data: MediaItem[];
+};
+
 /**
  * Modal pemilih media untuk editor / form fitur admin.
- * Memuat daftar media via partial visit ke halaman pustaka media.
+ * Memuat JSON dengan HTTP mandiri agar state draft editor tetap utuh.
  */
 export function MediaPicker({
     onPick,
@@ -29,21 +33,25 @@ export function MediaPicker({
 }) {
     const [open, setOpen] = useState(false);
     const [media, setMedia] = useState<MediaItem[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const { get, processing, cancel } = useHttp<
+        Record<string, never>,
+        MediaPickerResponse
+    >({});
 
     function load() {
-        setLoading(true);
-        router.visit(mediaIndex.url(), {
-            only: ['media'],
-            preserveScroll: true,
-            preserveState: true,
-            onSuccess: (page) => {
-                const pageMedia = page.props.media as
-                    { data?: MediaItem[] } | undefined;
-                setMedia(pageMedia?.data ?? []);
+        setError(null);
+        get(mediaPicker.url(), {
+            onSuccess: (response) => {
+                setMedia(response.data);
             },
-            onFinish: () => setLoading(false),
-        });
+            onHttpException: () => {
+                setError('Media tidak dapat dimuat.');
+            },
+            onNetworkError: () => {
+                setError('Koneksi gagal saat memuat media.');
+            },
+        }).catch(() => undefined);
     }
 
     return (
@@ -54,6 +62,8 @@ export function MediaPicker({
 
                 if (value) {
                     load();
+                } else {
+                    cancel();
                 }
             }}
         >
@@ -66,10 +76,19 @@ export function MediaPicker({
                 <DialogHeader>
                     <DialogTitle>Pilih media</DialogTitle>
                 </DialogHeader>
-                {loading && media.length === 0 ? (
+                {processing && media.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                         Memuat media…
                     </p>
+                ) : error !== null ? (
+                    <div className="space-y-2">
+                        <p role="alert" className="text-sm text-destructive">
+                            {error}
+                        </p>
+                        <Button type="button" variant="outline" onClick={load}>
+                            Coba lagi
+                        </Button>
+                    </div>
                 ) : media.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                         Belum ada media di pustaka.

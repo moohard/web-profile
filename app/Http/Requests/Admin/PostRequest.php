@@ -89,9 +89,9 @@ class PostRequest extends FormRequest
                 }
 
                 $body = $translation['body'] ?? null;
-                $sanitizedBody = is_string($body) ? $sanitizer->clean($body) : null;
+                $sanitizedBody = is_string($body) ? $sanitizer->cleanRichText($body) : null;
 
-                if (! filled($sanitizedBody)) {
+                if (! $this->hasRichTextContent($sanitizedBody)) {
                     $validator->errors()->add(
                         "translations.{$index}.body",
                         'Konten wajib diisi untuk translation Published.',
@@ -99,6 +99,15 @@ class PostRequest extends FormRequest
                 }
             }
         }];
+    }
+
+    private function hasRichTextContent(?string $html): bool
+    {
+        if ($html === null) {
+            return false;
+        }
+
+        return excerpt($html) !== '' || preg_match('/<img(?:\s|>)/i', $html) === 1;
     }
 
     protected function prepareForValidation(): void
