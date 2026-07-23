@@ -82,7 +82,7 @@ it('Admin melihat daftar Trash Post dan Page yang terpisah', function (): void {
         ->get('/admin/posts/trash')
         ->assertOk()
         ->assertInertia(fn (Assert $inertia) => $inertia
-            ->component('admin/posts/trash', false)
+            ->component('admin/posts/trash')
             ->has('posts.data', 1)
             ->where('posts.data.0.title', 'Post Terhapus'));
 
@@ -90,7 +90,7 @@ it('Admin melihat daftar Trash Post dan Page yang terpisah', function (): void {
         ->get('/admin/pages/trash')
         ->assertOk()
         ->assertInertia(fn (Assert $inertia) => $inertia
-            ->component('admin/pages/trash', false)
+            ->component('admin/pages/trash')
             ->has('pages.data', 1)
             ->where('pages.data.0.title', 'Page Terhapus'));
 });
@@ -153,7 +153,7 @@ it('Author hanya melihat dan restore Post miliknya tanpa force-delete', function
         ->get('/admin/posts/trash')
         ->assertOk()
         ->assertInertia(fn (Assert $inertia) => $inertia
-            ->component('admin/posts/trash', false)
+            ->component('admin/posts/trash')
             ->has('posts.data', 1)
             ->where('posts.data.0.title', 'Milik Author')
             ->where('posts.data.0.canForceDelete', false));

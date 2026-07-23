@@ -127,9 +127,16 @@ export default function PagesIndex({
             <div className="space-y-6 p-6">
                 <div className="flex items-center justify-between">
                     <h1 className="text-2xl font-semibold">Halaman</h1>
-                    <Button asChild>
-                        <a href={pagesRoutes.create.url()}>Tambah halaman</a>
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button variant="outline" asChild>
+                            <a href={pagesRoutes.trash.url()}>Trash</a>
+                        </Button>
+                        <Button asChild>
+                            <a href={pagesRoutes.create.url()}>
+                                Tambah halaman
+                            </a>
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="flex flex-wrap gap-3">
