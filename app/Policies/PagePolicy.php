@@ -57,4 +57,19 @@ class PagePolicy
 
         return $user->can('pages.delete');
     }
+
+    public function viewTrash(User $user): bool
+    {
+        return $user->can('pages.viewAny');
+    }
+
+    public function restore(User $user, Page $page): bool
+    {
+        return $user->can('pages.update');
+    }
+
+    public function forceDelete(User $user, Page $page): bool
+    {
+        return $user->can('pages.delete');
+    }
 }

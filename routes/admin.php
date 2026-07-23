@@ -18,20 +18,26 @@ Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
 Route::prefix('posts')->name('posts.')->group(function (): void {
     Route::get('/', [PostController::class, 'index'])->name('index');
+    Route::get('/trash', [PostController::class, 'trash'])->name('trash');
     Route::get('/create', [PostController::class, 'create'])->name('create');
     Route::post('/', [PostController::class, 'store'])->name('store');
     Route::get('/{post}/edit', [PostController::class, 'edit'])->name('edit');
     Route::put('/{post}', [PostController::class, 'update'])->name('update');
     Route::delete('/{post}', [PostController::class, 'destroy'])->name('destroy');
+    Route::patch('/{post}/restore', [PostController::class, 'restore'])->withTrashed()->name('restore');
+    Route::delete('/{post}/force-delete', [PostController::class, 'forceDelete'])->withTrashed()->name('force-delete');
 });
 
 Route::prefix('pages')->name('pages.')->group(function (): void {
     Route::get('/', [PageController::class, 'index'])->name('index');
+    Route::get('/trash', [PageController::class, 'trash'])->name('trash');
     Route::get('/create', [PageController::class, 'create'])->name('create');
     Route::post('/', [PageController::class, 'store'])->name('store');
     Route::get('/{page}/edit', [PageController::class, 'edit'])->name('edit');
     Route::put('/{page}', [PageController::class, 'update'])->name('update');
     Route::delete('/{page}', [PageController::class, 'destroy'])->name('destroy');
+    Route::patch('/{page}/restore', [PageController::class, 'restore'])->withTrashed()->name('restore');
+    Route::delete('/{page}/force-delete', [PageController::class, 'forceDelete'])->withTrashed()->name('force-delete');
 });
 
 // Placeholder routes — diisi di fase berikutnya

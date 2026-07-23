@@ -9,6 +9,7 @@ use App\Http\Requests\Admin\PageRequest;
 use App\Models\Language;
 use App\Models\Page;
 use App\Models\PageTranslation;
+use App\Models\User;
 use App\Services\Html\Sanitizer;
 use App\Support\ContentSlug;
 use Illuminate\Http\RedirectResponse;
@@ -62,6 +63,24 @@ class PageController extends Controller
             'filters' => [
                 'status' => $statusFilter,
             ],
+        ]);
+    }
+
+    public function trash(Request $request): Response
+    {
+        $this->authorize('viewTrash', Page::class);
+
+        $user = $request->user();
+        $currentLanguageId = Language::current()->id;
+        $pages = Page::onlyTrashed()
+            ->with('translations')
+            ->latest('deleted_at')
+            ->paginate(20)
+            ->withQueryString()
+            ->through(fn (Page $page): array => $this->toTrashSummary($page, $currentLanguageId, $user));
+
+        return Inertia::render('admin/pages/trash', [
+            'pages' => $pages,
         ]);
     }
 
@@ -159,6 +178,28 @@ class PageController extends Controller
         return redirect()->route('admin.pages.index');
     }
 
+    public function restore(Page $page): RedirectResponse
+    {
+        $this->authorize('restore', $page);
+
+        $page->restore();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Halaman berhasil dipulihkan.']);
+
+        return redirect()->route('admin.pages.trash');
+    }
+
+    public function forceDelete(Page $page): RedirectResponse
+    {
+        $this->authorize('forceDelete', $page);
+
+        $page->forceDelete();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Halaman dihapus permanen.']);
+
+        return redirect()->route('admin.pages.trash');
+    }
+
     /**
      * Upsert translation per bahasa untuk halaman — hanya menambah/mengubah,
      * tidak menghapus translation bahasa yang tak disertakan di request.
@@ -220,6 +261,24 @@ class PageController extends Controller
             'status' => $translation?->status,
             'updated_at' => $page->updated_at?->toIso8601String() ?? '',
             'editUrl' => route('admin.pages.edit', $page->id),
+        ];
+    }
+
+    /**
+     * @return array{id: int, title: string, mode: string, deleted_at: string, canRestore: bool, canForceDelete: bool}
+     */
+    private function toTrashSummary(Page $page, int $currentLanguageId, ?User $user): array
+    {
+        $translation = $page->translations->firstWhere('language_id', $currentLanguageId)
+            ?? $page->translations->first();
+
+        return [
+            'id' => $page->id,
+            'title' => $translation !== null ? $translation->title : '(tanpa judul)',
+            'mode' => $page->mode->value,
+            'deleted_at' => $page->deleted_at?->toIso8601String() ?? '',
+            'canRestore' => $user?->can('restore', $page) ?? false,
+            'canForceDelete' => $user?->can('forceDelete', $page) ?? false,
         ];
     }
 

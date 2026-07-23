@@ -13,6 +13,7 @@ use App\Models\Language;
 use App\Models\Post;
 use App\Models\PostTranslation;
 use App\Models\Tag;
+use App\Models\User;
 use App\Services\Html\Sanitizer;
 use App\Support\ContentSlug;
 use Illuminate\Http\RedirectResponse;
@@ -66,6 +67,28 @@ class PostController extends Controller
                 'type' => $typeFilter,
                 'status' => $statusFilter,
             ],
+        ]);
+    }
+
+    public function trash(Request $request): Response
+    {
+        $this->authorize('viewTrash', Post::class);
+
+        $user = $request->user();
+        $currentLanguageId = Language::current()->id;
+        $posts = Post::onlyTrashed()
+            ->with(['type.translations', 'translations', 'author'])
+            ->when(
+                $user !== null && $user->hasRole(UserRole::Author->value),
+                fn ($query) => $query->where('author_id', $user->id),
+            )
+            ->latest('deleted_at')
+            ->paginate(20)
+            ->withQueryString()
+            ->through(fn (Post $post): array => $this->toTrashSummary($post, $currentLanguageId, $user));
+
+        return Inertia::render('admin/posts/trash', [
+            'posts' => $posts,
         ]);
     }
 
@@ -167,6 +190,28 @@ class PostController extends Controller
         return redirect()->route('admin.posts.index');
     }
 
+    public function restore(Post $post): RedirectResponse
+    {
+        $this->authorize('restore', $post);
+
+        $post->restore();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Post berhasil dipulihkan.']);
+
+        return redirect()->route('admin.posts.trash');
+    }
+
+    public function forceDelete(Post $post): RedirectResponse
+    {
+        $this->authorize('forceDelete', $post);
+
+        $post->forceDelete();
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Post dihapus permanen.']);
+
+        return redirect()->route('admin.posts.trash');
+    }
+
     /**
      * Upsert translation per bahasa untuk post — hanya menambah/mengubah,
      * tidak menghapus translation bahasa yang tak disertakan di request.
@@ -233,6 +278,27 @@ class PostController extends Controller
             'author' => $post->author !== null ? $post->author->name : '-',
             'updated_at' => $post->updated_at?->toIso8601String() ?? '',
             'editUrl' => route('admin.posts.edit', $post->id),
+        ];
+    }
+
+    /**
+     * @return array{id: int, title: string, typeName: string, author: string, deleted_at: string, canRestore: bool, canForceDelete: bool}
+     */
+    private function toTrashSummary(Post $post, int $currentLanguageId, ?User $user): array
+    {
+        $translation = $post->translations->firstWhere('language_id', $currentLanguageId)
+            ?? $post->translations->first();
+        $typeTranslation = $post->type->translations->firstWhere('language_id', $currentLanguageId)
+            ?? $post->type->translations->first();
+
+        return [
+            'id' => $post->id,
+            'title' => $translation !== null ? $translation->title : '(tanpa judul)',
+            'typeName' => $typeTranslation !== null ? $typeTranslation->name : $post->type->slug,
+            'author' => $post->author !== null ? $post->author->name : '-',
+            'deleted_at' => $post->deleted_at?->toIso8601String() ?? '',
+            'canRestore' => $user?->can('restore', $post) ?? false,
+            'canForceDelete' => $user?->can('forceDelete', $post) ?? false,
         ];
     }
 

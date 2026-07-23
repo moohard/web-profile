@@ -59,6 +59,25 @@ class PostPolicy
         return $this->owns($user, $post);
     }
 
+    public function viewTrash(User $user): bool
+    {
+        return $user->can('posts.viewAny');
+    }
+
+    public function restore(User $user, Post $post): bool
+    {
+        if ($user->can('posts.update') && ! $user->hasRole(UserRole::Author->value)) {
+            return true;
+        }
+
+        return $user->can('posts.update') && $this->owns($user, $post);
+    }
+
+    public function forceDelete(User $user, Post $post): bool
+    {
+        return $user->can('posts.delete');
+    }
+
     /**
      * Apakah user adalah pemilik (author) dari post ini.
      */
