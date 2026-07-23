@@ -42,6 +42,8 @@ it('Editor mendapat permission konten dan AI tanpa Tampilan atau Sistem', functi
                     && $p->contains('tags.viewAny')
                     && $p->contains('ai.create')
                     && $p->contains('ai.update')
+                    && ! $p->contains('ai.viewAny')
+                    && ! $p->contains('ai.delete')
                     && ! $p->contains('content-types.viewAny')
                     && ! $p->contains('admin.access-appearance')
                     && ! $p->contains('admin.access-system')

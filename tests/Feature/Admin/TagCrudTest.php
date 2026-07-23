@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\UserRole;
 use App\Models\ContentType;
 use App\Models\Language;
 use App\Models\Post;
@@ -36,13 +37,35 @@ it('GET /admin/tags menampilkan daftar tag untuk admin', function () {
         );
 });
 
-it('Editor dapat membuka pengelolaan tag', function () {
-    $editor = User::factory()->create()->assignRole(\App\Enums\UserRole::Editor->value);
+it('Editor dapat mengelola tag', function () {
+    $editor = User::factory()->create()->assignRole(UserRole::Editor->value);
+    $idLang = Language::idFor('id');
 
     $this->actingAs($editor)
         ->get('/admin/tags')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('admin/tags/index'));
+
+    $this->actingAs($editor)
+        ->post('/admin/tags', [
+            'translations' => [['language_id' => $idLang, 'name' => 'Tag Editor']],
+        ])
+        ->assertRedirect();
+
+    $tag = Tag::query()->where('slug', 'tag-editor')->firstOrFail();
+
+    $this->actingAs($editor)
+        ->put("/admin/tags/{$tag->id}", [
+            'slug' => 'tag-editor-baru',
+            'translations' => [['language_id' => $idLang, 'name' => 'Tag Editor Baru']],
+        ])
+        ->assertRedirect();
+
+    $this->actingAs($editor)
+        ->delete("/admin/tags/{$tag->id}")
+        ->assertRedirect();
+
+    expect(Tag::find($tag->id))->toBeNull();
 });
 
 it('POST /admin/tags membuat tag beserta translation per bahasa', function () {

@@ -63,14 +63,13 @@ class RolePermissionSeeder extends Seeder
         // Editor: akses admin + konten/halaman/media/interaksi (tanpa Tampilan, tanpa Sistem)
         $editor = Role::findOrCreate(UserRole::Editor->value);
         $editor->syncPermissions(array_merge(
-            ['access-admin'],
+            ['access-admin', 'ai.create', 'ai.update'],
             $this->permissionNamesFor([
                 'posts',
                 'pages',
                 'media',
                 'categories',
                 'tags',
-                'ai',
                 'contact-messages',
                 'testimonials',
                 'ratings',

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\UserRole;
 use App\Models\Category;
 use App\Models\CategoryTranslation;
 use App\Models\ContentType;
@@ -36,13 +37,35 @@ it('GET /admin/categories menampilkan daftar kategori untuk admin', function () 
         );
 });
 
-it('Editor dapat membuka pengelolaan kategori', function () {
-    $editor = User::factory()->create()->assignRole(\App\Enums\UserRole::Editor->value);
+it('Editor dapat mengelola kategori', function () {
+    $editor = User::factory()->create()->assignRole(UserRole::Editor->value);
+    $idLang = Language::idFor('id');
 
     $this->actingAs($editor)
         ->get('/admin/categories')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page->component('admin/categories/index'));
+
+    $this->actingAs($editor)
+        ->post('/admin/categories', [
+            'translations' => [['language_id' => $idLang, 'name' => 'Kategori Editor']],
+        ])
+        ->assertRedirect();
+
+    $category = Category::query()->where('slug', 'kategori-editor')->firstOrFail();
+
+    $this->actingAs($editor)
+        ->put("/admin/categories/{$category->id}", [
+            'slug' => 'kategori-editor-baru',
+            'translations' => [['language_id' => $idLang, 'name' => 'Kategori Editor Baru']],
+        ])
+        ->assertRedirect();
+
+    $this->actingAs($editor)
+        ->delete("/admin/categories/{$category->id}")
+        ->assertRedirect();
+
+    expect(Category::find($category->id))->toBeNull();
 });
 
 it('POST /admin/categories membuat kategori beserta translation per bahasa', function () {

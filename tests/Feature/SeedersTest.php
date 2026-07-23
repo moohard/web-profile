@@ -52,6 +52,8 @@ it('role mendapat capability sesuai matriks PRD', function () {
             'ai.create',
             'ai.update',
         ]))->toBeTrue()
+        ->and($editor->hasPermissionTo('ai.viewAny'))->toBeFalse()
+        ->and($editor->hasPermissionTo('ai.delete'))->toBeFalse()
         ->and($editor->hasPermissionTo('content-types.viewAny'))->toBeFalse()
         ->and($editor->hasPermissionTo('admin.access-system'))->toBeFalse()
         ->and($editor->hasPermissionTo('admin.access-appearance'))->toBeFalse()

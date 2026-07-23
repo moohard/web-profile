@@ -49,3 +49,21 @@ it('route Sistem ter-tolak untuk Editor', function () {
     $this->actingAs($editor)->get('/admin/users')->assertForbidden();
     $this->actingAs($editor)->get('/admin/settings')->assertForbidden();
 });
+
+it('route Interaksi dan Galeri ter-tolak untuk Author', function () {
+    $author = User::factory()->create()->assignRole(UserRole::Author->value);
+
+    $this->actingAs($author)->get('/admin/contact-messages')->assertForbidden();
+    $this->actingAs($author)->get('/admin/testimonials')->assertForbidden();
+    $this->actingAs($author)->get('/admin/ratings')->assertForbidden();
+    $this->actingAs($author)->get('/admin/galleries')->assertForbidden();
+});
+
+it('route Interaksi dan Galeri dapat diakses Editor', function () {
+    $editor = User::factory()->create()->assignRole(UserRole::Editor->value);
+
+    $this->actingAs($editor)->get('/admin/contact-messages')->assertOk();
+    $this->actingAs($editor)->get('/admin/testimonials')->assertOk();
+    $this->actingAs($editor)->get('/admin/ratings')->assertOk();
+    $this->actingAs($editor)->get('/admin/galleries')->assertOk();
+});

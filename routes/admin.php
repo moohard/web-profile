@@ -37,9 +37,9 @@ Route::prefix('pages')->name('pages.')->group(function (): void {
 // Placeholder routes — diisi di fase berikutnya
 Route::get('/menus', fn () => Inertia::render('admin/placeholder', ['section' => 'Menu']))->name('menus.index')->middleware('permission:admin.access-appearance');
 Route::get('/widgets', fn () => Inertia::render('admin/placeholder', ['section' => 'Widget']))->name('widgets.index')->middleware('permission:admin.access-appearance');
-Route::get('/contact-messages', fn () => Inertia::render('admin/placeholder', ['section' => 'Pesan Kontak']))->name('contact-messages.index');
-Route::get('/testimonials', fn () => Inertia::render('admin/placeholder', ['section' => 'Testimoni']))->name('testimonials.index');
-Route::get('/ratings', fn () => Inertia::render('admin/placeholder', ['section' => 'Penilaian']))->name('ratings.index');
+Route::get('/contact-messages', fn () => Inertia::render('admin/placeholder', ['section' => 'Pesan Kontak']))->name('contact-messages.index')->middleware('permission:contact-messages.viewAny');
+Route::get('/testimonials', fn () => Inertia::render('admin/placeholder', ['section' => 'Testimoni']))->name('testimonials.index')->middleware('permission:testimonials.viewAny');
+Route::get('/ratings', fn () => Inertia::render('admin/placeholder', ['section' => 'Penilaian']))->name('ratings.index')->middleware('permission:ratings.viewAny');
 Route::get('/users', fn () => Inertia::render('admin/placeholder', ['section' => 'Pengguna']))->name('users.index')->middleware('permission:admin.access-system');
 Route::get('/settings', fn () => Inertia::render('admin/placeholder', ['section' => 'Pengaturan']))->name('settings.index')->middleware('permission:admin.access-system');
 Route::get('/settings/ai', [AiConfigController::class, 'index'])
@@ -64,7 +64,7 @@ Route::get('/tags', [TagController::class, 'index'])->name('tags.index');
 Route::post('/tags', [TagController::class, 'store'])->name('tags.store');
 Route::put('/tags/{tag}', [TagController::class, 'update'])->name('tags.update');
 Route::delete('/tags/{tag}', [TagController::class, 'destroy'])->name('tags.destroy');
-Route::get('/galleries', fn () => Inertia::render('admin/placeholder', ['section' => 'Galeri']))->name('galleries.index');
+Route::get('/galleries', fn () => Inertia::render('admin/placeholder', ['section' => 'Galeri']))->name('galleries.index')->middleware('permission:galleries.viewAny');
 Route::get('/writing-styles', fn () => Inertia::render('admin/placeholder', ['section' => 'Gaya Bahasa']))->name('writing-styles.index')->middleware('permission:admin.access-system');
 Route::get('/rating-criteria', fn () => Inertia::render('admin/placeholder', ['section' => 'Kriteria Penilaian']))->name('rating-criteria.index')->middleware('permission:admin.access-system');
 Route::get('/media', [MediaController::class, 'index'])->name('media.index');
