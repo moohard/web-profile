@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Pages\PermanentlyDeletePage;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PageRequest;
 use App\Models\Language;
@@ -189,11 +190,11 @@ class PageController extends Controller
         return redirect()->route('admin.pages.trash');
     }
 
-    public function forceDelete(Page $page): RedirectResponse
+    public function forceDelete(Page $page, PermanentlyDeletePage $permanentlyDelete): RedirectResponse
     {
         $this->authorize('forceDelete', $page);
 
-        $page->forceDelete();
+        $permanentlyDelete($page);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Halaman dihapus permanen.']);
 

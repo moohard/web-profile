@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Admin;
 
+use App\Actions\Posts\PermanentlyDeletePost;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\PostRequest;
@@ -201,11 +202,11 @@ class PostController extends Controller
         return redirect()->route('admin.posts.trash');
     }
 
-    public function forceDelete(Post $post): RedirectResponse
+    public function forceDelete(Post $post, PermanentlyDeletePost $permanentlyDelete): RedirectResponse
     {
         $this->authorize('forceDelete', $post);
 
-        $post->forceDelete();
+        $permanentlyDelete($post);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Post dihapus permanen.']);
 
