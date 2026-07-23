@@ -101,27 +101,34 @@ class PublicLayoutProps
             ->orderBy('sort_order')
             ->get()
             ->map(fn (MenuItem $item) => self::mapMenuItem($item, $langId))
+            ->filter()
             ->values()
             ->all();
     }
 
     /**
-     * @return array{label: string, url: string, children: array<int, array<string, mixed>>}
+     * @return array{label: string, url: string, children: array<int, array<string, mixed>>}|null
      */
-    private static function mapMenuItem(MenuItem $item, int $langId): array
+    private static function mapMenuItem(MenuItem $item, int $langId): ?array
     {
         $translation = $item->translations->first();
+        $url = self::resolveMenuItemUrl($item, $langId);
+
+        if ($url === null) {
+            return null;
+        }
 
         $children = $item->relationLoaded('children')
             ? $item->children
                 ->map(fn (MenuItem $child) => self::mapMenuItem($child, $langId))
+                ->filter()
                 ->values()
                 ->all()
             : [];
 
         return [
             'label' => $translation instanceof MenuItemTranslation ? $translation->label : '',
-            'url' => self::resolveMenuItemUrl($item, $langId),
+            'url' => $url,
             'children' => $children,
         ];
     }
@@ -130,7 +137,7 @@ class PublicLayoutProps
      * Bangun URL menu berdasarkan link_type + link_ref.
      * URL manual (Url) dibiarkan apa adanya; target internal di-locale-prefix.
      */
-    private static function resolveMenuItemUrl(MenuItem $item, int $langId): string
+    private static function resolveMenuItemUrl(MenuItem $item, int $langId): ?string
     {
         $locale = app()->getLocale();
 
@@ -142,10 +149,10 @@ class PublicLayoutProps
         };
     }
 
-    /** Locale-prefix path internal; kembalikan '#' bila target tak ditemukan. */
-    private static function localePath(string $locale, ?string $path): string
+    /** Locale-prefix path internal; kembalikan null bila target tak ditemukan. */
+    private static function localePath(string $locale, ?string $path): ?string
     {
-        return $path === null ? '#' : LocaleUrl::for($locale, $path);
+        return $path === null ? null : LocaleUrl::for($locale, $path);
     }
 
     private static function archivePath(?string $ref): ?string
@@ -189,6 +196,7 @@ class PublicLayoutProps
             ->where('page_id', $ref)
             ->where('language_id', $langId)
             ->where('status', 'Published')
+            ->whereHas('page')
             ->first();
 
         return $translation ? '/'.$translation->slug : null;

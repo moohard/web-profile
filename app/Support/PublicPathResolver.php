@@ -77,6 +77,7 @@ class PublicPathResolver
                 ->where('slug', $slug)
                 ->where('language_id', $langId)
                 ->where('status', 'Published')
+                ->whereHas('page')
                 ->first();
 
             if ($pageTranslation) {

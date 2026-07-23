@@ -25,6 +25,7 @@ class HomeController extends Controller
         $latest = PostTranslation::query()
             ->with('post.type')
             ->where('language_id', $langId)
+            ->whereHas('post')
             ->published()
             ->orderByDesc('published_at')
             ->limit(5)

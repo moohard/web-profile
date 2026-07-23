@@ -58,6 +58,7 @@ class GenerateSitemap extends Command
         // Custom pages published
         PageTranslation::query()
             ->where('status', PostStatus::Published->value)
+            ->whereHas('page')
             ->with('language')
             ->each(function (PageTranslation $pt) use ($defaultCode, $sitemap): void {
                 $locale = $pt->language->code;
