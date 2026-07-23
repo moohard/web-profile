@@ -24,6 +24,13 @@ use Illuminate\Support\Facades\Cache;
  */
 class PublicLayoutProps
 {
+    public static function flushCache(): void
+    {
+        foreach (Language::query()->pluck('id') as $languageId) {
+            Cache::forget("public_layout.{$languageId}");
+        }
+    }
+
     /**
      * Props global untuk seluruh halaman publik (cache 1 jam per bahasa).
      * Menu & locale tidak bergantung konteks halaman, jadi aman di-cache.

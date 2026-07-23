@@ -17,6 +17,7 @@ use App\Models\Tag;
 use App\Models\User;
 use App\Services\Html\Sanitizer;
 use App\Support\ContentSlug;
+use App\Support\PublicLayoutProps;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -80,7 +81,9 @@ class PostController extends Controller
         $posts = Post::onlyTrashed()
             ->with(['type.translations', 'translations', 'author'])
             ->when(
-                $user !== null && $user->hasRole(UserRole::Author->value),
+                $user !== null
+                    && $user->hasRole(UserRole::Author->value)
+                    && ! $user->hasAnyRole([UserRole::Admin->value, UserRole::Editor->value]),
                 fn ($query) => $query->where('author_id', $user->id),
             )
             ->latest('deleted_at')
@@ -185,6 +188,7 @@ class PostController extends Controller
         $this->authorize('delete', $post);
 
         $post->delete();
+        PublicLayoutProps::flushCache();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Post berhasil dihapus.']);
 
@@ -193,9 +197,11 @@ class PostController extends Controller
 
     public function restore(Post $post): RedirectResponse
     {
+        abort_unless($post->trashed(), 404);
         $this->authorize('restore', $post);
 
         $post->restore();
+        PublicLayoutProps::flushCache();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Post berhasil dipulihkan.']);
 
@@ -204,6 +210,7 @@ class PostController extends Controller
 
     public function forceDelete(Post $post, PermanentlyDeletePost $permanentlyDelete): RedirectResponse
     {
+        abort_unless($post->trashed(), 404);
         $this->authorize('forceDelete', $post);
 
         $permanentlyDelete($post);

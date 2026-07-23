@@ -8,6 +8,7 @@ use App\Enums\LinkType;
 use App\Models\MenuItem;
 use App\Models\Page;
 use App\Models\WidgetPlacementTarget;
+use App\Support\PublicLayoutProps;
 use Illuminate\Support\Facades\DB;
 
 class PermanentlyDeletePage
@@ -27,5 +28,7 @@ class PermanentlyDeletePage
 
             $page->forceDelete();
         });
+
+        PublicLayoutProps::flushCache();
     }
 }

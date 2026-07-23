@@ -8,6 +8,7 @@ use App\Enums\LinkType;
 use App\Models\MenuItem;
 use App\Models\Post;
 use App\Models\WidgetPlacementTarget;
+use App\Support\PublicLayoutProps;
 use Illuminate\Support\Facades\DB;
 
 class PermanentlyDeletePost
@@ -27,5 +28,7 @@ class PermanentlyDeletePost
 
             $post->forceDelete();
         });
+
+        PublicLayoutProps::flushCache();
     }
 }

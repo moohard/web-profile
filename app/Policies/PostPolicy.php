@@ -66,8 +66,8 @@ class PostPolicy
 
     public function restore(User $user, Post $post): bool
     {
-        if ($user->can('posts.update') && ! $user->hasRole(UserRole::Author->value)) {
-            return true;
+        if ($user->hasAnyRole([UserRole::Admin->value, UserRole::Editor->value])) {
+            return $user->can('posts.update');
         }
 
         return $user->can('posts.update') && $this->owns($user, $post);

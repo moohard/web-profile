@@ -19,6 +19,7 @@ use App\Models\Widget;
 use App\Models\WidgetPlacement;
 use App\Models\WidgetPlacementTarget;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -175,6 +176,61 @@ it('Author hanya melihat dan restore Post miliknya tanpa force-delete', function
         ->and(Post::withTrashed()->find($otherPost->id)?->trashed())->toBeTrue();
 });
 
+it('endpoint restore dan force-delete menolak Post aktif', function (): void {
+    $contentType = ContentType::query()->firstOrFail();
+    $post = Post::factory()->create(['type_id' => $contentType->id]);
+    $admin = User::query()->where('email', config('admin.email'))->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch("/admin/posts/{$post->id}/restore")
+        ->assertNotFound();
+    $this->actingAs($admin)
+        ->delete("/admin/posts/{$post->id}/force-delete")
+        ->assertNotFound();
+
+    expect(Post::query()->find($post->id))->not->toBeNull();
+});
+
+it('endpoint restore dan force-delete menolak Page aktif', function (): void {
+    $page = Page::factory()->create();
+    $admin = User::query()->where('email', config('admin.email'))->firstOrFail();
+
+    $this->actingAs($admin)
+        ->patch("/admin/pages/{$page->id}/restore")
+        ->assertNotFound();
+    $this->actingAs($admin)
+        ->delete("/admin/pages/{$page->id}/force-delete")
+        ->assertNotFound();
+
+    expect(Page::query()->find($page->id))->not->toBeNull();
+});
+
+it('Editor dengan role tambahan Author tetap dapat melihat dan restore seluruh Post', function (): void {
+    $languageId = Language::idFor('id');
+    $contentType = ContentType::query()->firstOrFail();
+    $editor = User::factory()->create();
+    $editor->assignRole(['Editor', 'Author']);
+    $otherAuthor = User::factory()->create()->assignRole('Author');
+    $ownPost = Post::factory()
+        ->withTranslation('id', $languageId, ['title' => 'Milik Editor'])
+        ->create(['type_id' => $contentType->id, 'author_id' => $editor->id]);
+    $otherPost = Post::factory()
+        ->withTranslation('id', $languageId, ['title' => 'Milik Author Lain'])
+        ->create(['type_id' => $contentType->id, 'author_id' => $otherAuthor->id]);
+    $ownPost->delete();
+    $otherPost->delete();
+
+    $this->actingAs($editor)
+        ->get('/admin/posts/trash')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->has('posts.data', 2));
+    $this->actingAs($editor)
+        ->patch("/admin/posts/{$otherPost->id}/restore")
+        ->assertRedirect('/admin/posts/trash');
+
+    expect($otherPost->fresh())->not->toBeNull();
+});
+
 it('force-delete Post membersihkan relasi target dan media secara permanen', function (): void {
     $languageId = Language::idFor('id');
     $contentType = ContentType::query()->firstOrFail();
@@ -195,6 +251,9 @@ it('force-delete Post membersihkan relasi target dan media secara permanen', fun
     $target = makeWidgetTarget(WidgetPlacementTarget::TYPE_CONTENT_SINGLE, (string) $post->id);
     $admin = User::query()->where('email', config('admin.email'))->firstOrFail();
     $post->delete();
+    foreach (Language::query()->pluck('id') as $languageId) {
+        Cache::put("public_layout.{$languageId}", ['stale'], now()->addHour());
+    }
 
     $this->actingAs($admin)
         ->delete("/admin/posts/{$post->id}/force-delete")
@@ -205,7 +264,12 @@ it('force-delete Post membersihkan relasi target dan media secara permanen', fun
         ->and(PostTag::query()->where('post_id', $post->id)->exists())->toBeFalse()
         ->and(MenuItem::query()->whereKey($menuItem->id)->exists())->toBeFalse()
         ->and(WidgetPlacementTarget::query()->whereKey($target->id)->exists())->toBeFalse()
-        ->and(Media::query()->whereKey($media->id)->exists())->toBeFalse();
+        ->and(Media::query()->whereKey($media->id)->exists())->toBeFalse()
+        ->and(
+            Language::query()
+                ->pluck('id')
+                ->contains(fn (int $languageId): bool => Cache::has("public_layout.{$languageId}")),
+        )->toBeFalse();
     Storage::disk('public')->assertMissing($mediaPath);
 });
 

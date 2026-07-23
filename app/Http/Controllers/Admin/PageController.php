@@ -13,6 +13,7 @@ use App\Models\PageTranslation;
 use App\Models\User;
 use App\Services\Html\Sanitizer;
 use App\Support\ContentSlug;
+use App\Support\PublicLayoutProps;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -173,6 +174,7 @@ class PageController extends Controller
         $this->authorize('delete', $page);
 
         $page->delete();
+        PublicLayoutProps::flushCache();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Halaman berhasil dihapus.']);
 
@@ -181,9 +183,11 @@ class PageController extends Controller
 
     public function restore(Page $page): RedirectResponse
     {
+        abort_unless($page->trashed(), 404);
         $this->authorize('restore', $page);
 
         $page->restore();
+        PublicLayoutProps::flushCache();
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Halaman berhasil dipulihkan.']);
 
@@ -192,6 +196,7 @@ class PageController extends Controller
 
     public function forceDelete(Page $page, PermanentlyDeletePage $permanentlyDelete): RedirectResponse
     {
+        abort_unless($page->trashed(), 404);
         $this->authorize('forceDelete', $page);
 
         $permanentlyDelete($page);

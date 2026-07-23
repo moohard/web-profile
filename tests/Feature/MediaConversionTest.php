@@ -48,7 +48,7 @@ it('Upload SVG — tidak ada conversion, file asli tersimpan', function () {
     @unlink($svgPath);
 });
 
-it('Hapus Post — media terhapus juga', function () {
+it('soft delete mempertahankan media dan force-delete membersihkannya', function () {
     $type = ContentType::factory()->create(['slug' => 'berita']);
     $post = Post::factory()->create(['type_id' => $type->id]);
 
@@ -59,6 +59,11 @@ it('Hapus Post — media terhapus juga', function () {
     $path = $media->getPath();
 
     $post->delete();
+
+    expect(Media::find($mediaId))->not->toBeNull()
+        ->and(file_exists($path))->toBeTrue();
+
+    $post->forceDelete();
 
     expect(Media::find($mediaId))->toBeNull()
         ->and(file_exists($path))->toBeFalse();

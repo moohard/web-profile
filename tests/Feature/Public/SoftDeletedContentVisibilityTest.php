@@ -12,6 +12,7 @@ use App\Models\MenuItemTranslation;
 use App\Models\Page;
 use App\Models\PageTranslation;
 use App\Models\Post;
+use App\Models\User;
 use App\Support\PublicPathResolver;
 use Illuminate\Support\Facades\Cache;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -117,11 +118,31 @@ it('menu publik melewati item yang menargetkan Page di Trash', function (): void
         'language_id' => $this->languageId,
         'label' => 'Page Trash',
     ]);
-    $page->delete();
+    $admin = User::query()->where('email', config('admin.email'))->firstOrFail();
+
+    $this->get('/')
+        ->assertOk()
+        ->assertInertia(fn (Assert $inertia) => $inertia
+            ->component('public/home')
+            ->where('headerMenu.0.url', '/menu-page-trash'));
+
+    $this->actingAs($admin)
+        ->delete("/admin/pages/{$page->id}")
+        ->assertRedirect('/admin/pages');
 
     $this->get('/')
         ->assertOk()
         ->assertInertia(fn (Assert $inertia) => $inertia
             ->component('public/home')
             ->where('headerMenu', []));
+
+    $this->actingAs($admin)
+        ->patch("/admin/pages/{$page->id}/restore")
+        ->assertRedirect('/admin/pages/trash');
+
+    $this->get('/')
+        ->assertOk()
+        ->assertInertia(fn (Assert $inertia) => $inertia
+            ->component('public/home')
+            ->where('headerMenu.0.url', '/menu-page-trash'));
 });
