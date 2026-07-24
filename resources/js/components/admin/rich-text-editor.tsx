@@ -39,7 +39,12 @@ const HEADING_LEVELS = [1, 2, 3] as const;
  * tak ada di allowlist rich-text) — apa yang diketik = yang tersimpan setelah
  * sanitasi server.
  */
-export function RichTextEditor({ id, value, onChange, ariaLabel }: RichTextEditorProps) {
+export function RichTextEditor({
+    id,
+    value,
+    onChange,
+    ariaLabel,
+}: RichTextEditorProps) {
     const editor = useEditor({
         immediatelyRender: false,
         extensions: [

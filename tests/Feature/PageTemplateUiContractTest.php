@@ -6,7 +6,7 @@ it('mode Template memakai RichTextEditor dan Code mempertahankan textarea', func
     $source = file_get_contents(resource_path('js/pages/admin/pages/form.tsx'));
 
     expect($source)
-        ->toContain("import { RichTextEditor }")
+        ->toContain('import { RichTextEditor }')
         ->toContain('<RichTextEditor')
         ->toContain('<textarea')
         ->toContain("form.data.mode === 'Code'");

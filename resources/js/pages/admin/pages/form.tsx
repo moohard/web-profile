@@ -679,10 +679,7 @@ export default function PageForm({
 
                             <div className="space-y-1 rounded-md border p-3">
                                 <div className="flex items-center gap-2">
-                                    <Checkbox
-                                        id="page-add-to-menu"
-                                        disabled
-                                    />
+                                    <Checkbox id="page-add-to-menu" disabled />
                                     <Label
                                         htmlFor="page-add-to-menu"
                                         className="font-normal text-muted-foreground"
@@ -817,23 +814,22 @@ export default function PageForm({
                         </div>
                     </div>
 
-                        <div className="flex gap-2">
-                            <Button type="submit" disabled={form.processing}>
-                                {form.processing ? 'Menyimpan…' : 'Simpan'}
-                            </Button>
-                            {activeTranslation && (
-                                <PagePreviewDialog
-                                    endpoint={pagesRoutes.preview.url()}
-                                    payload={() => ({
-                                        mode: form.data.mode,
-                                        template_key:
-                                            form.data.template_key,
-                                        title: activeTranslation.title,
-                                        content: activeTranslation.content,
-                                    })}
-                                />
-                            )}
-                            <Button variant="outline" asChild>
+                    <div className="flex gap-2">
+                        <Button type="submit" disabled={form.processing}>
+                            {form.processing ? 'Menyimpan…' : 'Simpan'}
+                        </Button>
+                        {activeTranslation && (
+                            <PagePreviewDialog
+                                endpoint={pagesRoutes.preview.url()}
+                                payload={() => ({
+                                    mode: form.data.mode,
+                                    template_key: form.data.template_key,
+                                    title: activeTranslation.title,
+                                    content: activeTranslation.content,
+                                })}
+                            />
+                        )}
+                        <Button variant="outline" asChild>
                             <a href={pagesRoutes.index.url()}>Batal</a>
                         </Button>
                     </div>

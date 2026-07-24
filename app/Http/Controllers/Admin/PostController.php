@@ -27,7 +27,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class PostController extends Controller
 {
@@ -241,30 +240,6 @@ class PostController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Post dihapus permanen.']);
 
         return redirect()->route('admin.posts.trash');
-    }
-
-    /**
-     * Selaraskan gambar unggulan post ke koleksi media `featured` (singleFile).
-     * Media pilihan dari MediaPicker di-copy (bukan dipindah) ke koleksi post ini
-     * supaya media asal — bila kepunyaan model lain — tidak ikut berpindah/terhapus.
-     * No-op bila id yang dipilih sama dengan media featured yang sudah terpasang
-     * (mencegah duplikasi & regenerasi conversion setiap kali post disimpan ulang).
-     */
-    private function syncFeaturedMedia(Post $post, ?int $mediaId): void
-    {
-        $currentMediaId = $post->getFirstMedia('featured')?->id;
-
-        if ($mediaId === $currentMediaId) {
-            return;
-        }
-
-        if ($mediaId === null) {
-            $post->getFirstMedia('featured')?->delete();
-
-            return;
-        }
-
-        Media::findOrFail($mediaId)->copy($post, 'featured');
     }
 
     /**

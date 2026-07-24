@@ -67,7 +67,7 @@ class PageRequest extends FormRequest
     public function withValidator(Validator $validator): void
     {
         $validator->after(function (Validator $validator): void {
-            /** @var list<array{language_id?: int|string, title?: ?string}> $translations */
+            /** @var list<array{language_id?: int|string, title?: ?string, status?: ?string, content?: ?string}> $translations */
             $translations = (array) $this->input('translations', []);
             $defaultLanguageId = Language::defaultModel()->id;
 

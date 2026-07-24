@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Public;
 
 use App\Http\Controllers\Controller;
-use App\Models\Category;
 use App\Models\ContentType;
 use App\Models\Language;
 use App\Models\Post;
@@ -162,76 +161,6 @@ class PostController extends Controller
                 'jsonLd' => $jsonLd,
             ],
         ));
-    }
-
-    /**
-     * URL gambar dari koleksi media `featured`, memakai konversi WebP yang diminta
-     * bila sudah selesai diproses (queued); fallback ke file asli bila belum tersedia.
-     */
-    private function featuredImageUrl(?Post $post, string $conversion): ?string
-    {
-        $media = $post?->getFirstMedia('featured');
-
-        if ($media === null) {
-            return null;
-        }
-
-        return $media->hasGeneratedConversion($conversion) ? $media->getUrl($conversion) : $media->getUrl();
-    }
-
-    /**
-     * Srcset responsif dari konversi `webp_large` — satu-satunya konversi yang
-     * mengaktifkan withResponsiveImages(). Null bila media/variannya belum tersedia.
-     */
-    private function featuredImageSrcset(?Post $post): ?string
-    {
-        $media = $post?->getFirstMedia('featured');
-
-        if ($media === null || ! $media->hasGeneratedConversion('webp_large')) {
-            return null;
-        }
-
-        return $media->getSrcset('webp_large') ?: null;
-    }
-
-    /**
-     * @return array{slug: string, name: string}|null
-     */
-    private function categoryProp(?Category $category, string $locale): ?array
-    {
-        if ($category === null) {
-            return null;
-        }
-
-        $languageId = Language::idFor($locale);
-        $translation = $category->translations->firstWhere('language_id', $languageId)
-            ?? $category->translations->first();
-
-        return [
-            'slug' => $category->slug,
-            'name' => $translation !== null ? $translation->name : $category->slug,
-        ];
-    }
-
-    /**
-     * @return array<int, array{slug: string, name: string}>
-     */
-    private function tagsProp(Post $post, string $locale): array
-    {
-        $languageId = Language::idFor($locale);
-
-        return $post->tags
-            ->map(function (Tag $tag) use ($languageId): array {
-                $translation = $tag->translations->firstWhere('language_id', $languageId)
-                    ?? $tag->translations->first();
-
-                return [
-                    'slug' => $tag->slug,
-                    'name' => $translation !== null ? $translation->name : $tag->slug,
-                ];
-            })
-            ->values()
-            ->all();
     }
 
     private function contentTypeName(ContentType $contentType): string

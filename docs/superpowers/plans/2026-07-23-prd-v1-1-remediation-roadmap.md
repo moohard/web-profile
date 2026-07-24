@@ -39,3 +39,16 @@
 - Pint, PHPStan, TypeScript, ESLint, Prettier, Wayfinder, Vite client, dan SSR build hijau.
 - Traceability matrix menghubungkan requirement, fase, file implementasi, dan tes.
 
+## Traceability Matrix (Fase 7-10)
+
+| Requirement PRD | Fase | File Implementasi | File Test |
+| --- | --- | --- | --- |
+| Users: pengelolaan akun pengguna dan role | 7 | `app/Http/Controllers/Admin/UserController.php` | `tests/Feature/Admin/UserCrudTest.php` |
+| Settings: pembaruan pengaturan situs | 7 | `app/Http/Controllers/Admin/SettingsController.php` | `tests/Feature/Admin/SiteSettingsUpdateTest.php` |
+| Menu: CRUD struktur menu | 8 | `app/Http/Controllers/Admin/MenuController.php` | `tests/Feature/Admin/MenuCrudTest.php` |
+| Widget: CRUD dan penempatan widget | 8 | `app/Http/Controllers/Admin/WidgetController.php` | `tests/Feature/Admin/WidgetCrudTest.php` |
+| Gallery: CRUD galeri | 8 | `app/Http/Controllers/Admin/GalleryController.php` | `tests/Feature/Admin/GalleryCrudTest.php` |
+| Contact: pengiriman formulir kontak publik | 9 | `app/Http/Controllers/Public/ContactController.php` | `tests/Feature/Public/ContactSubmitTest.php` |
+| Testimonial: pengiriman testimoni publik | 9 | `app/Http/Controllers/Public/TestimonialController.php` | `tests/Feature/Public/TestimonialSubmitTest.php` |
+| Rating: pengiriman rating publik | 9 | `app/Http/Controllers/Public/RatingController.php` | `tests/Feature/Public/RatingSubmitTest.php` |
+| WhatsApp: props layout publik untuk tombol WhatsApp | 9 | `app/Support/PublicLayoutProps.php` | `tests/Feature/PublicLayoutRegionTest.php` |

@@ -5,13 +5,15 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Public;
 
 use App\Enums\PageMode;
+use App\Enums\TestimonialStatus;
 use App\Http\Controllers\Controller;
 use App\Models\PageTranslation;
+use App\Models\Testimonial;
 use App\Models\WidgetPlacementTarget;
 use App\Services\Html\Sanitizer;
+use App\Support\Pages\PageTemplateRegistry;
 use App\Support\PublicLayoutProps;
 use App\Support\PublicLocaleLinks;
-use App\Support\Pages\PageTemplateRegistry;
 use App\Support\Seo\SeoProps;
 use Illuminate\Support\Facades\URL;
 use Inertia\Inertia;
@@ -54,6 +56,21 @@ class PageController extends Controller
         ];
         $props['page'] = $translation;
         $props['templateKey'] = PageTemplateRegistry::resolve($page->template_key);
+        $props['testimonials'] = $props['templateKey'] === 'testimonials'
+            ? Testimonial::query()
+                ->where('status', TestimonialStatus::Approved)
+                ->orderBy('sort_order')
+                ->latest('id')
+                ->get()
+                ->map(fn (Testimonial $testimonial): array => [
+                    'id' => $testimonial->id,
+                    'author_name' => $testimonial->author_name,
+                    'author_title' => $testimonial->author_title,
+                    'content' => $testimonial->content,
+                    'photo_url' => $testimonial->getFirstMediaUrl('photo') ?: null,
+                ])
+                ->all()
+            : [];
 
         $props['seo'] = SeoProps::for(
             title: $translation->meta_title ?: $translation->title,
