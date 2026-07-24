@@ -13,7 +13,7 @@ beforeEach(function () {
 it('props auth.user.roles diisi untuk user login', function () {
     $admin = User::where('email', env('ADMIN_EMAIL', 'admin@papenajam.test'))->first();
 
-    $response = $this->actingAs($admin)->get(route('dashboard'));
+    $response = $this->actingAs($admin)->get(route('admin.dashboard'));
 
     $response->assertOk();
     $response->assertInertia(fn (Assert $page) => $page
@@ -28,7 +28,7 @@ it('props auth.user.roles diisi untuk user login', function () {
 it('contentTypes berisi 3 tipe seeder', function () {
     $admin = User::where('email', env('ADMIN_EMAIL', 'admin@papenajam.test'))->first();
 
-    $response = $this->actingAs($admin)->get(route('dashboard'));
+    $response = $this->actingAs($admin)->get(route('admin.dashboard'));
 
     $response->assertOk();
     $response->assertInertia(fn (Assert $page) => $page

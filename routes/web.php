@@ -77,9 +77,9 @@ Route::get('/{publicPath}', $dispatchPublicPath)
     ->where('publicPath', $publicPath)
     ->name('public.resolve');
 
-// Dashboard (auth) — path statis
+// Dashboard (auth) — path statis; dialihkan ke dashboard admin (/admin)
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    Route::redirect('dashboard', '/admin')->name('dashboard');
 });
 
 require __DIR__.'/settings.php';

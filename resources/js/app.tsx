@@ -14,8 +14,6 @@ createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
     layout: (name) => {
         switch (true) {
-            case name === 'welcome':
-                return null;
             // Halaman publik memakai PublicLayout di dalam page component
             case name.startsWith('public/'):
                 return null;
