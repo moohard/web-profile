@@ -4,10 +4,15 @@ use App\Actions\Languages\SaveLanguage;
 use App\Models\Language;
 use App\Models\Page;
 use App\Models\PageTranslation;
+use App\Models\SettingTranslation;
+use App\Settings\SiteSettings;
+use App\Settings\WhatsappSettings;
+use Illuminate\Support\Facades\Cache;
 use Inertia\Ssr\HttpGateway;
 use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
+    $this->withoutVite();
     $this->seed();
     Language::flushCache();
 });
@@ -36,6 +41,59 @@ it('Publik layout mengirim props region, menu, dan localeLinks dari server', fun
             ->where('seo.hreflang.id', 'http://localhost')
             ->where('seo.hreflang.en', 'http://localhost/en')
             ->where('seo.hreflang.x-default', 'http://localhost')
+        );
+});
+
+it('Publik layout mengirim pengaturan WhatsApp dari server', function () {
+    $settings = app(WhatsappSettings::class);
+    $settings->number = '6281234';
+    $settings->enabled = true;
+    $settings->default_message = 'Halo dari Papenajam';
+    $settings->save();
+    Cache::flush();
+
+    $this->get('/')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('whatsapp.number', '6281234')
+            ->where('whatsapp.enabled', true)
+            ->where('whatsapp.default_message', 'Halo dari Papenajam')
+        );
+
+    $settings->enabled = false;
+    $settings->save();
+    Cache::flush();
+
+    $this->get('/')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('whatsapp.enabled', false)
+        );
+});
+
+it('Publik layout mengirim footer terjemahan, kontak, dan sosial dari server', function () {
+    $site = app(SiteSettings::class);
+    $site->address = 'Jl. Nusantara No. 1';
+    $site->phone = '+62 811 1234';
+    $site->email = 'halo@example.test';
+    $site->social_links = ['instagram' => 'https://instagram.com/papenajam'];
+    $site->save();
+
+    SettingTranslation::updateOrCreate(
+        ['key' => 'site.footer_text', 'language_id' => Language::idFor('id')],
+        ['value' => 'Footer Indonesia'],
+    );
+    setting_translated_flush('site.footer_text');
+    Cache::flush();
+
+    $this->get('/')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('footer.text', 'Footer Indonesia')
+            ->where('footer.address', 'Jl. Nusantara No. 1')
+            ->where('footer.phone', '+62 811 1234')
+            ->where('footer.email', 'halo@example.test')
+            ->where('footer.social_links.instagram', 'https://instagram.com/papenajam')
         );
 });
 

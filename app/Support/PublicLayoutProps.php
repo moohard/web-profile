@@ -14,10 +14,16 @@ use App\Models\MenuItem;
 use App\Models\MenuItemTranslation;
 use App\Models\PageTranslation;
 use App\Models\Post;
+use App\Models\Rating;
+use App\Models\RatingCriterion;
+use App\Models\RatingCriterionTranslation;
 use App\Models\WidgetPlacement;
 use App\Models\WidgetPlacementTarget;
 use App\Services\Html\Sanitizer;
+use App\Settings\SiteSettings;
+use App\Settings\WhatsappSettings;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Compose props layout publik (menu, locale, region/widget) dari DB.
@@ -41,7 +47,10 @@ class PublicLayoutProps
      *     homeUrl: string,
      *     localeLinks: list<array{code: string, name: string, url: ?string, isCurrent: bool, isAvailable: bool}>,
      *     headerMenu: array<int, array<string, mixed>>,
-     *     footerMenu: array<int, array<string, mixed>>
+     *     footerMenu: array<int, array<string, mixed>>,
+     *     whatsapp: array{number: string, enabled: bool, default_message: string},
+     *     footer: array{text: ?string, address: ?string, phone: string, email: ?string, social_links: array<string, string>},
+     *     rating: array{totalRespondents: int, criteria: array<int, array{id: int, name: string, average: float, total: int}>}
      * }
      */
     public static function base(array $localeLinks): array
@@ -51,18 +60,75 @@ class PublicLayoutProps
         $cached = Cache::remember("public_layout.{$langId}", now()->addHour(), function () use ($langId) {
             $headerMenu = self::resolveMenu(MenuLocation::Header, $langId);
             $footerMenu = self::resolveMenu(MenuLocation::Footer, $langId);
+            $whatsapp = app(WhatsappSettings::class);
+            $site = app(SiteSettings::class);
+            $rating = self::ratingSummary($langId);
 
             return [
                 'locale' => app()->getLocale(),
                 'homeUrl' => LocaleUrl::for(app()->getLocale(), '/'),
                 'headerMenu' => $headerMenu,
                 'footerMenu' => $footerMenu,
+                'whatsapp' => [
+                    'number' => $whatsapp->number,
+                    'enabled' => $whatsapp->enabled,
+                    'default_message' => $whatsapp->default_message,
+                ],
+                'footer' => [
+                    'text' => setting_translated('site.footer_text', app()->getLocale()),
+                    'address' => $site->address,
+                    'phone' => $site->phone,
+                    'email' => $site->email,
+                    'social_links' => $site->social_links,
+                ],
+                'rating' => $rating,
             ];
         });
 
         return [
             ...$cached,
             'localeLinks' => $localeLinks,
+        ];
+    }
+
+    /**
+     * @return array{totalRespondents: int, criteria: array<int, array{id: int, name: string, average: float, total: int}>}
+     */
+    private static function ratingSummary(int $languageId): array
+    {
+        $aggregates = DB::table('rating_scores')
+            ->selectRaw('criterion_id, AVG(score) as average, COUNT(DISTINCT rating_id) as total')
+            ->groupBy('criterion_id')
+            ->get()
+            ->mapWithKeys(fn (\stdClass $aggregate): array => [
+                (int) $aggregate->criterion_id => [
+                    'average' => (float) $aggregate->average,
+                    'total' => (int) $aggregate->total,
+                ],
+            ])
+            ->all();
+
+        return [
+            'totalRespondents' => Rating::query()->count(),
+            'criteria' => RatingCriterion::query()
+                ->active()
+                ->with(['translations' => fn ($query) => $query->where('language_id', $languageId)])
+                ->get()
+                ->map(function (RatingCriterion $criterion) use ($aggregates): array {
+                    $aggregate = $aggregates[$criterion->id] ?? null;
+                    $translation = $criterion->translations->first();
+
+                    return [
+                        'id' => $criterion->id,
+                        'name' => $translation instanceof RatingCriterionTranslation
+                            ? $translation->name
+                            : 'Kriteria',
+                        'average' => $aggregate['average'] ?? 0.0,
+                        'total' => $aggregate['total'] ?? 0,
+                    ];
+                })
+                ->values()
+                ->all(),
         ];
     }
 
