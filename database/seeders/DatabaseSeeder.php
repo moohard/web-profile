@@ -19,6 +19,8 @@ class DatabaseSeeder extends Seeder
             AiConfigSeeder::class,
             AdminUserSeeder::class,
             DemoPostSeeder::class,
+            ContactPageSeeder::class,
+            TestimonialPageSeeder::class,
         ]);
     }
 }

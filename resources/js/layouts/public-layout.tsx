@@ -2,10 +2,13 @@ import { Link, usePage } from '@inertiajs/react';
 import type { ReactNode } from 'react';
 import { LocaleSwitcher } from '@/components/locale-switcher';
 import { Hero } from '@/components/public/hero';
+import { RatingSummary } from '@/components/public/rating-summary';
+import { WhatsappFloat } from '@/components/public/whatsapp-float';
 import { WidgetRenderer } from '@/components/public/widget-renderer';
 import type { WidgetItem } from '@/components/public/widget-renderer';
 import { JsonLd } from '@/components/seo/json-ld';
 import { MetaHead } from '@/components/seo/meta-head';
+import type { PublicLayoutProps as PublicLayoutBaseProps } from '@/types';
 
 export type PublicMenuItem = {
     label: string;
@@ -69,7 +72,7 @@ export type PublicRegion = {
 };
 
 /** Props layout yang di-share dari controller publik. */
-export type PublicLayoutSharedProps = {
+export type PublicLayoutSharedProps = PublicLayoutBaseProps & {
     locale: string;
     homeUrl: string;
     localeLinks: {
@@ -176,6 +179,41 @@ export default function PublicLayout(props: PublicLayoutProps) {
 
             <footer className="border-t bg-muted/50">
                 <div className="mx-auto max-w-6xl p-4">
+                    <div className="space-y-2 text-sm text-muted-foreground">
+                        {props.footer.text && <p>{props.footer.text}</p>}
+                        {props.footer.address && <p>{props.footer.address}</p>}
+                        {(props.footer.phone || props.footer.email) && (
+                            <p>
+                                {props.footer.phone}
+                                {props.footer.phone &&
+                                    props.footer.email &&
+                                    ' · '}
+                                {props.footer.email}
+                            </p>
+                        )}
+                        {Object.entries(props.footer.social_links).length >
+                            0 && (
+                            <ul
+                                className="flex flex-wrap gap-4"
+                                aria-label="Media sosial"
+                            >
+                                {Object.entries(props.footer.social_links).map(
+                                    ([name, url]) => (
+                                        <li key={name}>
+                                            <a
+                                                href={url}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                            >
+                                                {name}
+                                            </a>
+                                        </li>
+                                    ),
+                                )}
+                            </ul>
+                        )}
+                    </div>
+                    <RatingSummary {...props.rating} />
                     <ul className="flex flex-wrap gap-4">
                         <MenuNodes
                             items={props.footerMenu ?? []}
@@ -187,6 +225,8 @@ export default function PublicLayout(props: PublicLayoutProps) {
                     ))}
                 </div>
             </footer>
+
+            <WhatsappFloat />
         </>
     );
 }
