@@ -30,6 +30,7 @@ import ratingCriteria from '@/routes/admin/rating-criteria';
 import ratings from '@/routes/admin/ratings';
 import settings from '@/routes/admin/settings';
 import tags from '@/routes/admin/tags';
+import templates from '@/routes/admin/templates';
 import testimonials from '@/routes/admin/testimonials';
 import users from '@/routes/admin/users';
 import widgets from '@/routes/admin/widgets';
@@ -151,6 +152,13 @@ export const NAV_ITEMS: NavItem[] = [
         href: media.index.url(),
         icon: Image,
         group: 'system',
+    },
+    {
+        label: 'Template',
+        href: templates.index.url(),
+        icon: LayoutTemplate,
+        group: 'system',
+        permission: 'admin.access-system',
     },
     {
         label: 'Pengguna',

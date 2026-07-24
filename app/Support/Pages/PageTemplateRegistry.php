@@ -15,6 +15,8 @@ class PageTemplateRegistry
             ['key' => 'default', 'label' => 'Default'],
             ['key' => 'full-width', 'label' => 'Full width'],
             ['key' => 'landing', 'label' => 'Landing'],
+            ['key' => 'contact', 'label' => 'Kontak'],
+            ['key' => 'testimonials', 'label' => 'Testimoni'],
         ];
     }
 

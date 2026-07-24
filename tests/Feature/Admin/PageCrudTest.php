@@ -8,6 +8,7 @@ use App\Models\Language;
 use App\Models\Page;
 use App\Models\PageTranslation;
 use App\Models\User;
+use App\Support\Pages\PageTemplateRegistry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -263,11 +264,7 @@ it('form hanya menawarkan registry template tetap', function () {
         ->get('/admin/pages/create')
         ->assertOk()
         ->assertInertia(fn (Assert $page) => $page
-            ->where('templateOptions', [
-                ['key' => 'default', 'label' => 'Default'],
-                ['key' => 'full-width', 'label' => 'Full width'],
-                ['key' => 'landing', 'label' => 'Landing'],
-            ])
+            ->where('templateOptions', PageTemplateRegistry::options())
         );
 });
 
