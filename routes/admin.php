@@ -5,19 +5,36 @@ declare(strict_types=1);
 use App\Http\Controllers\Admin\AiConfigController;
 use App\Http\Controllers\Admin\AiController;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\Admin\ContentTypeController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\GalleryController;
 use App\Http\Controllers\Admin\LanguageController;
 use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\Admin\MenuItemController;
 use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\PagePreviewController;
 use App\Http\Controllers\Admin\PostController;
+use App\Http\Controllers\Admin\RatingController;
+use App\Http\Controllers\Admin\RatingCriterionController;
+use App\Http\Controllers\Admin\SettingsController;
 use App\Http\Controllers\Admin\TagController;
+use App\Http\Controllers\Admin\TemplateRegistryController;
+use App\Http\Controllers\Admin\TestimonialController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\WidgetController;
 use App\Http\Controllers\Admin\WritingStyleController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
+
+Route::prefix('contact-messages')->name('contact-messages.')->group(function (): void {
+    Route::get('/', [ContactMessageController::class, 'index'])->name('index');
+    Route::get('/{contactMessage}', [ContactMessageController::class, 'show'])->name('show');
+    Route::put('/{contactMessage}', [ContactMessageController::class, 'update'])->name('update');
+    Route::delete('/{contactMessage}', [ContactMessageController::class, 'destroy'])->name('destroy');
+});
 
 Route::prefix('posts')->name('posts.')->group(function (): void {
     Route::get('/', [PostController::class, 'index'])->name('index');
@@ -44,14 +61,29 @@ Route::prefix('pages')->name('pages.')->group(function (): void {
     Route::delete('/{page}/force-delete', [PageController::class, 'forceDelete'])->withTrashed()->name('force-delete');
 });
 
-// Placeholder routes — diisi di fase berikutnya
-Route::get('/menus', fn () => Inertia::render('admin/placeholder', ['section' => 'Menu']))->name('menus.index')->middleware('permission:admin.access-appearance');
-Route::get('/widgets', fn () => Inertia::render('admin/placeholder', ['section' => 'Widget']))->name('widgets.index')->middleware('permission:admin.access-appearance');
-Route::get('/contact-messages', fn () => Inertia::render('admin/placeholder', ['section' => 'Pesan Kontak']))->name('contact-messages.index')->middleware('permission:contact-messages.viewAny');
-Route::get('/testimonials', fn () => Inertia::render('admin/placeholder', ['section' => 'Testimoni']))->name('testimonials.index')->middleware('permission:testimonials.viewAny');
-Route::get('/ratings', fn () => Inertia::render('admin/placeholder', ['section' => 'Penilaian']))->name('ratings.index')->middleware('permission:ratings.viewAny');
-Route::get('/users', fn () => Inertia::render('admin/placeholder', ['section' => 'Pengguna']))->name('users.index')->middleware('permission:admin.access-system');
-Route::get('/settings', fn () => Inertia::render('admin/placeholder', ['section' => 'Pengaturan']))->name('settings.index')->middleware('permission:admin.access-system');
+Route::prefix('menus')->name('menus.')->middleware('permission:admin.access-appearance')->group(function (): void {
+    Route::get('/', [MenuController::class, 'index'])->name('index');
+    Route::post('/', [MenuController::class, 'store'])->name('store');
+    Route::put('/{menu}', [MenuController::class, 'update'])->name('update');
+    Route::delete('/{menu}', [MenuController::class, 'destroy'])->name('destroy');
+    Route::post('/{menu}/items', [MenuItemController::class, 'store'])->name('items.store');
+    Route::put('/{menu}/items/sync', [MenuItemController::class, 'sync'])->name('items.sync');
+});
+Route::resource('widgets', WidgetController::class)
+    ->only(['index', 'store', 'update', 'destroy'])
+    ->middleware('permission:admin.access-appearance');
+Route::prefix('testimonials')->name('testimonials.')->group(function (): void {
+    Route::get('/', [TestimonialController::class, 'index'])->name('index');
+    Route::patch('/{testimonial}/approve', [TestimonialController::class, 'approve'])->name('approve');
+    Route::put('/reorder', [TestimonialController::class, 'reorder'])->name('reorder');
+    Route::delete('/{testimonial}', [TestimonialController::class, 'destroy'])->name('destroy');
+});
+Route::get('/ratings', [RatingController::class, 'index'])
+    ->middleware('permission:ratings.viewAny')
+    ->name('ratings.index');
+Route::resource('users', UserController::class)->middleware('permission:admin.access-system');
+Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index')->middleware('permission:admin.access-system');
+Route::put('/settings', [SettingsController::class, 'update'])->name('settings.update')->middleware('permission:admin.access-system');
 Route::get('/settings/ai', [AiConfigController::class, 'index'])
     ->middleware('permission:admin.access-system')
     ->name('settings.ai');
@@ -84,7 +116,14 @@ Route::post('/tags/quick-store', [TagController::class, 'quickStore'])
     ->name('tags.quick-store');
 Route::put('/tags/{tag}', [TagController::class, 'update'])->name('tags.update');
 Route::delete('/tags/{tag}', [TagController::class, 'destroy'])->name('tags.destroy');
-Route::get('/galleries', fn () => Inertia::render('admin/placeholder', ['section' => 'Galeri']))->name('galleries.index')->middleware('permission:galleries.viewAny');
+Route::prefix('/galleries')->name('galleries.')->group(function (): void {
+    Route::get('/', [GalleryController::class, 'index'])->name('index');
+    Route::get('/create', [GalleryController::class, 'create'])->name('create');
+    Route::post('/', [GalleryController::class, 'store'])->name('store');
+    Route::get('/{gallery}/edit', [GalleryController::class, 'edit'])->name('edit');
+    Route::put('/{gallery}', [GalleryController::class, 'update'])->name('update');
+    Route::delete('/{gallery}', [GalleryController::class, 'destroy'])->name('destroy');
+});
 Route::prefix('/writing-styles')
     ->name('writing-styles.')
     ->middleware('permission:admin.access-system')
@@ -94,7 +133,15 @@ Route::prefix('/writing-styles')
         Route::put('/{writingStyle}', [WritingStyleController::class, 'update'])->name('update');
         Route::delete('/{writingStyle}', [WritingStyleController::class, 'destroy'])->name('destroy');
     });
-Route::get('/rating-criteria', fn () => Inertia::render('admin/placeholder', ['section' => 'Kriteria Penilaian']))->name('rating-criteria.index')->middleware('permission:admin.access-system');
+Route::prefix('/rating-criteria')->name('rating-criteria.')->group(function (): void {
+    Route::get('/', [RatingCriterionController::class, 'index'])->name('index');
+    Route::post('/', [RatingCriterionController::class, 'store'])->name('store');
+    Route::put('/{ratingCriterion}', [RatingCriterionController::class, 'update'])->name('update');
+    Route::delete('/{ratingCriterion}', [RatingCriterionController::class, 'destroy'])->name('destroy');
+});
+Route::get('/templates', [TemplateRegistryController::class, 'index'])
+    ->middleware('permission:admin.access-system')
+    ->name('templates.index');
 Route::get('/media', [MediaController::class, 'index'])->name('media.index');
 Route::get('/media/picker', [MediaController::class, 'picker'])
     ->middleware('permission:media.viewAny')

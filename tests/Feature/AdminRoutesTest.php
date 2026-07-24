@@ -2,12 +2,14 @@
 
 use App\Enums\UserRole;
 use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
 
 beforeEach(function () {
+    $this->withoutVite();
     $this->seed();
 });
 
-it('semua route placeholder mengembalikan 200 untuk Admin', function () {
+it('semua route administrasi mengembalikan 200 untuk Admin', function () {
     $admin = User::where('email', env('ADMIN_EMAIL', 'admin@papenajam.test'))->first();
 
     $routes = [
@@ -18,7 +20,6 @@ it('semua route placeholder mengembalikan 200 untuk Admin', function () {
         '/admin/contact-messages',
         '/admin/testimonials',
         '/admin/ratings',
-        '/admin/users',
         '/admin/settings',
         '/admin/settings/ai',
         '/admin/content-types',
@@ -64,4 +65,34 @@ it('route Interaksi dan Galeri dapat diakses Editor', function () {
     $this->actingAs($editor)->get('/admin/testimonials')->assertOk();
     $this->actingAs($editor)->get('/admin/ratings')->assertOk();
     $this->actingAs($editor)->get('/admin/galleries')->assertOk();
+});
+
+it('route rating merender halaman administrasi yang sesuai', function () {
+    $admin = User::where('email', env('ADMIN_EMAIL', 'admin@papenajam.test'))->firstOrFail();
+
+    $this->actingAs($admin)
+        ->get('/admin/ratings')
+        ->assertInertia(fn (Assert $page) => $page->component('admin/ratings/index'));
+
+    $this->actingAs($admin)
+        ->get('/admin/rating-criteria')
+        ->assertInertia(fn (Assert $page) => $page->component('admin/rating-criteria/index'));
+});
+
+it('route pesan kontak menggunakan halaman inbox', function () {
+    $admin = User::where('email', env('ADMIN_EMAIL', 'admin@papenajam.test'))->firstOrFail();
+
+    $this->actingAs($admin)
+        ->get('/admin/contact-messages')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('admin/contact-messages/index'));
+});
+
+it('route testimoni menggunakan halaman moderasi', function () {
+    $admin = User::where('email', env('ADMIN_EMAIL', 'admin@papenajam.test'))->firstOrFail();
+
+    $this->actingAs($admin)
+        ->get('/admin/testimonials')
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page->component('admin/testimonials/index'));
 });
